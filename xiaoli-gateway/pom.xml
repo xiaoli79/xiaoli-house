@@ -9,9 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.xiaoli</groupId>
     <artifactId>xiaoli-gateway</artifactId>
-    <version>1.0-SNAPSHOT</version>
 
     <properties>
         <java.version>17</java.version>

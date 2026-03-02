@@ -82,11 +82,6 @@
             <version>1.0-SNAPSHOT</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.xiaoli</groupId>
-            <artifactId>xiaoli-common-core</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
 
         <dependency>
             <groupId>org.xiaoli</groupId>
@@ -155,6 +150,7 @@
                         </image>
                     </images>
                 </configuration>
+
 
                 <executions>
                     <execution>
