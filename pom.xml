@@ -13,6 +13,7 @@
     <groupId>org.xiaoli</groupId>
     <artifactId>xiaoli-house</artifactId>
     <packaging>pom</packaging>
+
     <modules>
         <module>xiaoli-common</module>
         <module>xiaoli-file</module>
@@ -21,6 +22,7 @@
         <module>xiaoli-gateway</module>
         <module>xiaoli-mstemplate</module>
     </modules>
+
     <version>1.0-SNAPSHOT</version>
 
     <properties>
@@ -41,7 +43,6 @@
 
         <aliyun.oss.version>3.15.1</aliyun.oss.version>
         <jwt.version>0.9.1</jwt.version>
-        <jaxb.api.version>2.3.1</jaxb.api.version>
         <jaxb.api.version>2.3.1</jaxb.api.version>
         <hutool.version>5.8.25</hutool.version>
         <aliyun.sms.version>3.1.1</aliyun.sms.version>
@@ -114,7 +115,7 @@
 
             <dependency>
                 <groupId>com.baomidou</groupId>
-                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+                <artifactId>mybatis-plus-annotation</artifactId>
                 <version>${mybatis-plus.version}</version>
             </dependency>
 
