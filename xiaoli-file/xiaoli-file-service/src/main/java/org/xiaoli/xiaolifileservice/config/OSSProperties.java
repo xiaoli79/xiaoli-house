@@ -1,0 +1,90 @@
+package org.xiaoli.xiaolifileservice.config;
+
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * 阿里云OSS 配置信息，从nacos读取
+ */
+@Slf4j
+@Data
+@Configuration
+@RefreshScope
+//从（nacos）配置文件找所有以oss开头属性，抽取出来，和下面的类中变量进行映射，如果有，则会映射上~~ 也就是默认赋值
+@ConfigurationProperties(prefix = "oss")
+@ConditionalOnProperty(value = "storage.type", havingValue = "oss")
+public class OSSProperties  {
+
+    /**
+     * oss是否内网上传
+     */
+    private Boolean internal;
+
+    /**
+     * oss的endpoint
+     */
+    private String endpoint;
+
+    /**
+     * oss的endpoint的内部地址
+     */
+    private String intEndpoint;
+
+    /**
+     * 地域的代码
+     */
+    private String region;
+
+    /**
+     * ak
+     */
+    private String accessKeyId;
+
+    /**
+     * sk
+     */
+    private String accessKeySecret;
+
+    /**
+     *存储桶
+     */
+    private String bucketName;
+
+    /**
+     * 路径前缀，加在 endPoint 之后
+     */
+    private String pathPrefix;
+
+    /**
+     * 超时时间
+     */
+    private Integer expre;
+
+    private Integer minLen;
+
+    private Integer maxLen;
+
+
+    /**
+     * 获取访问URL
+     *
+     * @return url信息
+     */
+    public String getBaseUrl() {
+        return "https://" + bucketName + "." + endpoint + "/";
+    }
+
+    /**
+     * 获取内部访问URL
+     *
+     * @return 内部访问URL
+     */
+    public String getInternalBaseUrl() {
+        return "http://" + bucketName + "." + intEndpoint + "/";
+    }
+
+}

@@ -1,0 +1,20 @@
+package org.xiaoli.xiaoliadminservice.map.domain.dto;
+
+
+import lombok.Data;
+
+/**
+ * 逆地址解析结果
+ */
+@Data
+public class GeoResultDTO extends QQMapBaseResponseDTO{
+
+
+    /**
+     * 结果信息
+     */
+    private AddrResultDTO result;
+
+
+
+}

@@ -1,0 +1,28 @@
+#这个spring application 和 profiles active 对应着配置信息名称，拼起来就是
+#xiaoli-mstemplate-dev
+spring:
+  application:
+    name: xiaoli-file
+  profiles:
+    active: ${RUN_ENV}
+  main:
+    allow-bean-definition-overriding: true
+  cloud:
+    nacos:
+      discovery:
+        username: nacos
+        password: bite@123
+        namespace: frameworkjava-${RUN_ENV}
+        server-addr: ${NACOS_ADDR}
+      config:
+        username: nacos
+        password: bite@123
+        namespace: frameworkjava-${RUN_ENV}
+        server-addr: ${NACOS_ADDR}
+        file-extension: yaml
+
+
+# 这一配置用于定义应用在控制台输出日志时所遵循的格式规则
+logging:
+  pattern:
+    console: '[%thread] %-5level %logger{36} - %msg%n'
