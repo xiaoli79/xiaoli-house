@@ -12,7 +12,6 @@ import java.util.Map;
 /**
  * 字典服务的远程调用
  */
-
 @FeignClient(contextId = "dictionaryFeignClient",value = "bite-admin")
 public interface DicitonaryFeignClient {
 
@@ -49,5 +48,6 @@ public interface DicitonaryFeignClient {
      */
     @PostMapping("/dictionary_data/keys/")
     List<DictionaryDataDTO> getDicDataByKeys (@RequestBody List<String> dataKeys);
+
 
 }

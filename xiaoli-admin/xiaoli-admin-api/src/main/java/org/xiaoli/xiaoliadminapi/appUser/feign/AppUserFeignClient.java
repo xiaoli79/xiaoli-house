@@ -82,11 +82,4 @@ public interface AppUserFeignClient {
     @PostMapping("/list")
     R<List<AppUserVO>> list(@RequestBody List<Long> userIds);
 
-
-
-
-
-
-
-
 }

@@ -29,6 +29,7 @@ import org.xiaoli.xiaoliportalservice.user.service.IUserService;
 @Service
 public class UserServiceImpl implements IUserService {
 
+
     @Autowired
     private AppUserFeignClient appUserFeignClient;
 
@@ -37,7 +38,6 @@ public class UserServiceImpl implements IUserService {
 
     @Autowired
     private AliPnsService aliPnsService;
-
 
     /**
      * 用户登录DTO
