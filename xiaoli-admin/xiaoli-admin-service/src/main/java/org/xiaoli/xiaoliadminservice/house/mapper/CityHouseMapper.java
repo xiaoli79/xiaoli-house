@@ -1,0 +1,13 @@
+package org.xiaoli.xiaoliadminservice.house.mapper;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.xiaoli.xiaoliadminservice.house.domain.entity.CityHouse;
+
+
+
+
+public interface CityHouseMapper extends BaseMapper<CityHouse> {
+
+
+
+}
