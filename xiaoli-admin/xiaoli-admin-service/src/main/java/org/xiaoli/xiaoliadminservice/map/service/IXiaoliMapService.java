@@ -7,8 +7,6 @@ import org.xiaoli.xiaoliadminservice.map.domain.dto.RegionCityDTO;
 import org.xiaoli.xiaoliadminservice.map.domain.dto.SearchPoiDTO;
 import org.xiaoli.xiaoliadminservice.map.domain.dto.SysRegionDTO;
 import org.xiaoli.xiaolicommoncore.domain.dto.BasePageDTO;
-import org.xiaoli.xiaolicommondomain.domain.R;
-import org.xiaoli.xiaolicommondomain.domain.vo.BasePageVO;
 
 import java.util.List;
 import java.util.Map;
