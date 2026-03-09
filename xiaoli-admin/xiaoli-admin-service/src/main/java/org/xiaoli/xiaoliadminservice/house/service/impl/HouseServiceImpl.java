@@ -2,7 +2,6 @@ package org.xiaoli.xiaoliadminservice.house.service.impl;
 
 import com.alibaba.nacos.client.naming.utils.CollectionUtils;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import jakarta.validation.constraints.NotEmpty;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +35,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public class HouseServiceImpl implements IHouseService {
 
-
     //城市房源映射key前缀
     private static final String CITY_HOUSE_PREFIX = "house:list:";
     // 城市完整信息 key 前缀
@@ -50,7 +48,6 @@ public class HouseServiceImpl implements IHouseService {
 
     @Autowired
     private TagMapper tagMapper;
-
 
     @Autowired
     private TagHouseMapper tagHouseMapper;
@@ -111,59 +108,54 @@ public class HouseServiceImpl implements IHouseService {
         // 4.编辑 需要判断是否更新 城市房源映射、标签房源映射
         // 4.1 编辑 MySQL(House TagHouse CityHouse)
         // 4.2 编辑 Redis(城市房源映射)
-
-        if(null !=  houseAddOrEditReqDTO.getHouseId()){
+        if (null != houseAddOrEditReqDTO.getHouseId()) {
             house.setId(houseAddOrEditReqDTO.getHouseId());
+
+            // 判断是否需要修改城市房源的映射
+            House existHouse = houseMapper.selectById(houseAddOrEditReqDTO.getHouseId());
+            if (cityHouseNeedChange(existHouse, houseAddOrEditReqDTO.getCityId())) {
+                // 改变才更新(更新MySQL，更新Redis)
+                editCityHouses(houseAddOrEditReqDTO.getHouseId(), existHouse.getCityId(),
+                        houseAddOrEditReqDTO.getCityId(), houseAddOrEditReqDTO.getCityName());
+            }
+
+            // 判断是否需要修改标签房源的映射
+            List<TagHouse> tagHouses = tagHouseMapper.selectList(
+                    new LambdaQueryWrapper<TagHouse>()
+                            .eq(TagHouse::getHouseId, houseAddOrEditReqDTO.getHouseId()));
+            if (tagHouseNeedChange(tagHouses, houseAddOrEditReqDTO.getTagCodes())) {
+                // 改变才更新(更新Mysql)
+                editTagHouses(houseAddOrEditReqDTO.getHouseId(),
+                        tagHouses, houseAddOrEditReqDTO.getTagCodes());
+            }
+
         }
-
-//      判断是否需要修改城市房源的映射
-        House existHouse = houseMapper.selectById(houseAddOrEditReqDTO.getHouseId());
-
-        if(cityHouseNeedChange(existHouse,houseAddOrEditReqDTO.getCityId())){
-               editCityHouses(houseAddOrEditReqDTO.getHouseId(), existHouse.getCityId(),
-                       houseAddOrEditReqDTO.getCityId(), houseAddOrEditReqDTO.getCityName());
-        }
-
-//      判断是否需要修改标签房源的映射
-        List<TagHouse> tagHouses = tagHouseMapper.selectList(
-                new LambdaQueryWrapper<TagHouse>()
-                .eq(TagHouse::getHouseId, houseAddOrEditReqDTO.getHouseId()));
-
-        if(tagHouseNeedChange(tagHouses,houseAddOrEditReqDTO.getTagCodes())){
-            editTagHouses(houseAddOrEditReqDTO.getHouseId(),tagHouses,houseAddOrEditReqDTO.getTagCodes());
-        }
-
-
-
 
         // 如果是新增，调用完之后，house里会填充 id 字段
         houseMapper.insertOrUpdate(house);
 
 
-
-
         // 3.新增
         // 3.1 新增 MySQL(House HouseStatus TagHouse CityHouse)
         // 3.2 新增 Redis(城市房源映射)
-        if(null == houseAddOrEditReqDTO.getHouseId()){
+        if(null == houseAddOrEditReqDTO.getHouseId()) {
+            // 新增 HouseStatus TagHouse CityHouse：都需要一个 houseId 去做关联
 
-
-//          新增房源状态
             HouseStatus houseStatus = new HouseStatus();
             houseStatus.setHouseId(house.getId());
             houseStatus.setStatus(HouseStatusEnum.UP.name());
             houseStatusMapper.insert(houseStatus);
 
-//          新增cityHouse 同时更新redis
-            addCityHouse(house.getId(),house.getCityId(),house.getCityName());
+            // MySQL, Redis
+            addCityHouse(house.getId(), house.getCityId(), house.getCityName());
 
-//          新增TagHouse
-            addTagHouses(house.getId(),houseAddOrEditReqDTO.getTagCodes());
+            // MySQL
+            addTagHouses(house.getId(), houseAddOrEditReqDTO.getTagCodes());
 
         }
 
-        //缓存房源的完整信息
-        cahceHouse(house.getId());
+        // 5.缓存房源完整信息 Redis(房源完整信息)
+        cacheHouse(house.getId());
         return house.getId();
     }
 
@@ -180,8 +172,6 @@ public class HouseServiceImpl implements IHouseService {
         // houseId: 1
         // old：1 2 3 4 5
         // new: 3 4 5 6 7
-
-
         //找出你要删除的标签
         Set<String> oldTagCodes = olgtTagHouses.stream()
                 .map(TagHouse::getTagCode)
@@ -247,7 +237,7 @@ public class HouseServiceImpl implements IHouseService {
      */
     private boolean cityHouseNeedChange(House oldHouse, Long newCityId) {
 
-        return !oldHouse.getCityId().equals(newCityId);
+        return !Objects.equals(oldHouse.getCityId(), newCityId);
 
     }
 
@@ -275,17 +265,14 @@ public class HouseServiceImpl implements IHouseService {
         cityHouse.setHouseId(houseId);
         cityHouseMapper.insert(cityHouse);
 
-
         //更新缓存
         cacheCityHouses(2,houseId,oldCityId,newCityId);
-
-
     }
 
 
 
 
-    private void cahceHouse(Long houseId) {
+    private void cacheHouse(Long houseId) {
 
         //1.通过ID查询完整的房源信息
         //参数校验
@@ -299,6 +286,8 @@ public class HouseServiceImpl implements IHouseService {
             log.warn("缓存房源信息时,查询房源错误");
             return;
         }
+
+//      判断houseDTO是否为空~~
         cacheHouse(houseDTO);
 
     }
@@ -398,8 +387,6 @@ public class HouseServiceImpl implements IHouseService {
 
         houseDTO.setDevices(deviceDTOs);
 
-
-
         //TagDTO
         List<String> tagCodes = tagHouses.stream()
                 .map(TagHouse::getTagCode)
@@ -407,7 +394,7 @@ public class HouseServiceImpl implements IHouseService {
                 .collect(Collectors.toList());
 
         if(!CollectionUtils.isEmpty(tagCodes)){
-            List<Tag> tags = tagMapper.selectList(new LambdaQueryWrapper<Tag>().in(Tag::getTagCode, tagCodes));
+            List<Tag> tags = tagMapper.selectList(new LambdaQueryWrapper<Tag>().in(Tag::getTagCode,  tagCodes));
             houseDTO.setTags(BeanCopyUtil.copyList(tags, TagDTO::new));
         }
 
@@ -418,12 +405,22 @@ public class HouseServiceImpl implements IHouseService {
 
     //缓存房源的信息
     private void cacheHouse(HouseDTO houseDTO) {
+        if (null == houseDTO) {
+            log.warn("要缓存的房源详细信息为空！");
+            return;
+        }
 
-
-
-
+        // 缓存
+        try {
+            redisService.setCacheObject(HOUSE_PREFIX + houseDTO.getHouseId(),
+                    JsonUtil.obj2String(houseDTO));
+        } catch (Exception e) {
+            log.error("缓存房源完整信息时发生异常，houseDTO:{}", JsonUtil.obj2String(houseDTO), e);
+            // 对于房源完整信息，是否存在于redis，不需要强一致性。
+            // 因为C端查询时，如果redis不存在，可以通过查MySQL获取到数据，让后再放入Redis。
+            // throw e;
+        }
     }
-
 
     /**
      * 新增TagHouse
@@ -474,13 +471,12 @@ public class HouseServiceImpl implements IHouseService {
 
             if(1 == op){
 
-                redisService.setCacheList(CITY_HOUSE_PREFIX + newCityId,Arrays.asList(houseId,oldCityId));
+                redisService.setCacheList(CITY_HOUSE_PREFIX + newCityId, Arrays.asList(houseId));
             }else if(2 == op){
 //          删除旧城市下的房源ID
                 redisService.removeForList(CITY_HOUSE_PREFIX+oldCityId,Arrays.asList(houseId));
 //          新增新城市在的房源ID
                 redisService.setCacheList(CITY_HOUSE_PREFIX + newCityId,Arrays.asList(houseId));
-
             }else{
                 log.error("无效的操作:缓存城市房源关联信息");
             }
@@ -513,11 +509,10 @@ public class HouseServiceImpl implements IHouseService {
 
         //3.校验标签码
         List<Tag> tags = tagMapper.selectList(new LambdaQueryWrapper<Tag>().in(Tag::getTagCode,houseAddOrEditReqDTO.getTagCodes()));
-        if(tags.size() != tags.size()){
+        if(tags.size() != houseAddOrEditReqDTO.getTagCodes().size()){
             throw new ServiceException("传递的标签列表有误！",ResultCode.INVALID_PARA.getCode());
         }
         //4.设备码，房源基本信息
     }
-
 
 }
