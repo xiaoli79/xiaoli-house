@@ -8,6 +8,7 @@ import org.xiaoli.xiaolicommondomain.domain.dto.BasePageReqDTO;
 /**
  * 查询请求的DTO
  */
+//测试
 @Data
 public class PlaceSearchReqDTO extends BasePageReqDTO {
 
