@@ -19,6 +19,7 @@ import org.xiaoli.xiaoliadminservice.map.domain.entity.SysRegion;
 import org.xiaoli.xiaoliadminservice.map.mapper.RegionMapper;
 import org.xiaoli.xiaoliadminservice.user.domain.entity.AppUser;
 import org.xiaoli.xiaoliadminservice.user.mapper.AppUserMapper;
+import org.xiaoli.xiaolicommoncore.domain.dto.BasePageDTO;
 import org.xiaoli.xiaolicommoncore.utils.BeanCopyUtil;
 import org.xiaoli.xiaolicommoncore.utils.JsonUtil;
 import org.xiaoli.xiaolicommondomain.domain.ResultCode;
@@ -200,6 +201,49 @@ public class HouseServiceImpl implements IHouseService {
 
         //6.返回
         return houseDTO;
+    }
+
+
+    /**
+     * 查询房源摘要列表
+     * @param houseListReqDTO
+     * @return
+     */
+    @Override
+    public BasePageDTO<HouseDescDTO> list(HouseListReqDTO houseListReqDTO) {
+
+        //查询总数，联表查询
+
+        BasePageDTO<HouseDescDTO> result = new  BasePageDTO<>();
+
+
+        Long totals = houseMapper.selectCountWithStatus(houseListReqDTO);
+
+        if(null ==totals){
+
+            result.setList(new  ArrayList<>());
+            result.setTotals(0);
+            result.setTotalPages(0);
+            log.info("查询房源列表为空，HouseListReqDTO:{}",houseListReqDTO);
+            return result;
+        }
+
+        //查询列表
+        List<HouseDescDTO> houses = houseMapper.selectPageWithStatus(houseListReqDTO);
+
+        result.setTotals(Integer.parseInt(totals.toString()));
+
+        result.setTotalPages(BasePageDTO.calculateTotalPages(totals,houseListReqDTO.getPageSize()));
+
+        if(null == houses){
+
+            log.info("超出查询房源列表范围！HouseListReqDTO:{}",houseListReqDTO);
+            result.setList(new  ArrayList<>());
+            return result;
+        }
+
+        result.setList(houses);
+        return result;
     }
 
     /**

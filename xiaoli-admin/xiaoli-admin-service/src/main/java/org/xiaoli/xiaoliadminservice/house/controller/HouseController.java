@@ -2,15 +2,17 @@ package org.xiaoli.xiaoliadminservice.house.controller;
 
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.xiaoli.xiaoliadminservice.house.domain.dto.HouseAddOrEditReqDTO;
-import org.xiaoli.xiaoliadminservice.house.domain.dto.HouseDTO;
-import org.xiaoli.xiaoliadminservice.house.domain.dto.HouseDetailDTO;
+import org.xiaoli.xiaoliadminservice.house.domain.dto.*;
 import org.xiaoli.xiaoliadminservice.house.domain.vo.HouseDetailVO;
+import org.xiaoli.xiaoliadminservice.house.domain.vo.HouseVO;
 import org.xiaoli.xiaoliadminservice.house.service.IHouseService;
+import org.xiaoli.xiaolicommoncore.domain.dto.BasePageDTO;
 import org.xiaoli.xiaolicommondomain.domain.R;
+import org.xiaoli.xiaolicommondomain.domain.vo.BasePageVO;
 
 
 @Slf4j
@@ -48,6 +50,20 @@ public class HouseController {
         }
 
         return R.ok(houseDTO.convertToVO());
+    }
+
+
+    /**
+     * 查询房源摘要列表
+     * @param houseListReqDTO
+     * @return
+     */
+    @PostMapping("/list")
+    public R<BasePageVO<HouseVO>> list(@RequestBody @Validated HouseListReqDTO houseListReqDTO){
+        BasePageDTO<HouseDescDTO> houseDescList = houseService.list(houseListReqDTO);
+        BasePageVO<HouseVO> result = new  BasePageVO<>();
+        BeanUtils.copyProperties(houseDescList,result);
+        return R.ok(result);
     }
 
 }
