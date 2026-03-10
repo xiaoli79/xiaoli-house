@@ -78,6 +78,14 @@ public class R<T> {
         return restResult(data,ResultCode.ERROR.getCode(), ResultCode.ERROR.getMsg());
     }
 
+    public static <T>  R<T> fail(String msg){
+
+        return restResult(null,ResultCode.ERROR.getCode(), msg);
+    }
+
+
+
+
 
     /**
      * 失败响应
