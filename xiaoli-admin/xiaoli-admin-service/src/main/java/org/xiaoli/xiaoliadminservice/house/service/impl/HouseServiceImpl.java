@@ -3,16 +3,14 @@ package org.xiaoli.xiaoliadminservice.house.service.impl;
 import com.alibaba.nacos.client.naming.utils.CollectionUtils;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.xiaoli.xiaoliadminapi.config.domain.dto.DictionaryDataDTO;
 import org.xiaoli.xiaoliadminservice.config.service.impl.SysDictionaryServiceImpl;
-import org.xiaoli.xiaoliadminservice.house.domain.dto.DeviceDTO;
-import org.xiaoli.xiaoliadminservice.house.domain.dto.HouseAddOrEditReqDTO;
-import org.xiaoli.xiaoliadminservice.house.domain.dto.HouseDTO;
-import org.xiaoli.xiaoliadminservice.house.domain.dto.TagDTO;
+import org.xiaoli.xiaoliadminservice.house.domain.dto.*;
 import org.xiaoli.xiaoliadminservice.house.domain.entity.*;
 import org.xiaoli.xiaoliadminservice.house.domain.enums.HouseStatusEnum;
 import org.xiaoli.xiaoliadminservice.house.mapper.*;
@@ -28,6 +26,7 @@ import org.xiaoli.xiaolicommondomain.exception.ServiceException;
 import org.xiaoli.xiaolicommonredis.service.RedisService;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 
@@ -157,6 +156,78 @@ public class HouseServiceImpl implements IHouseService {
         // 5.缓存房源完整信息 Redis(房源完整信息)
         cacheHouse(house.getId());
         return house.getId();
+    }
+
+
+
+    /**
+     * 查询房源相关的信息
+     * @param houseId
+     * @return
+     */
+    @Override
+    public HouseDTO detail(Long houseId) {
+
+
+        //解决缓存穿透的问题~~
+        if(null == houseId || houseId <= 0) {
+            log.warn("要查询的房源ID为空或者无效");
+            return null;
+        }
+
+        //1.查询房源详情缓存
+        HouseDTO houseDTO = getCacheHouse(houseId);
+
+
+        //2.判断缓存是否村子啊
+        if(null != houseDTO) {
+            return houseDTO;
+        }
+
+
+        //3.缓存不存在，查询MySQL
+        houseDTO = getHouseDTOById(houseId);
+
+        //4.MySQL不存在，缓存空对象
+        if(null == houseDTO) {
+            cacheHouse(houseId,60L);
+            log.error("查询房源信息错误,houseId:{}",houseId);
+            return null;
+        }
+
+        //5.mysql存在，缓存房源详情
+        cacheHouse(houseDTO);
+
+        //6.返回
+        return houseDTO;
+    }
+
+    /**
+     * 从缓存中查询缓存详情
+     * @param houseId
+     * @return
+     */
+    private HouseDTO getCacheHouse(Long houseId) {
+
+        if(null == houseId){
+            return null;
+        }
+
+        HouseDTO houseDTO = null;
+        try{
+            String houseDTOStr = redisService.getCacheObject(HOUSE_PREFIX + houseId, String.class);
+
+            if(StringUtils.isBlank(houseDTOStr)){
+                return null;
+            }
+
+            houseDTO = JsonUtil.string2Obj(houseDTOStr, HouseDTO.class);
+
+        }catch (Exception e){
+            log.error("从缓存中获取房源信息异常:{}",houseId,e);
+        }
+
+        return houseDTO;
     }
 
 
@@ -401,6 +472,49 @@ public class HouseServiceImpl implements IHouseService {
         return houseDTO;
 
     }
+
+    /**
+     * 缓存HouseDTO完整信息
+     * @param houseDTO
+     * @param timeout
+     */
+    private void cacheHouse(HouseDTO houseDTO,Long timeout) {
+        if (null == houseDTO) {
+            log.warn("要缓存的房源详细信息为空！");
+            return;
+        }
+
+        // 缓存
+        try {
+            redisService.setCacheObject(HOUSE_PREFIX + houseDTO.getHouseId(),
+                    JsonUtil.obj2String(houseDTO),timeout, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.error("缓存房源完整信息时发生异常，houseDTO:{}", JsonUtil.obj2String(houseDTO), e);
+            // 对于房源完整信息，是否存在于redis，不需要强一致性。
+            // 因为C端查询时，如果redis不存在，可以通过查MySQL获取到数据，让后再放入Redis。
+            // throw e;
+        }
+    }
+
+
+    private void cacheHouse(Long houseId,Long timeout) {
+        if (null == houseId) {
+            log.warn("要缓存的房源详细信息为空！");
+            return;
+        }
+
+        // 缓存
+        try {
+            redisService.setCacheObject(HOUSE_PREFIX + houseId,
+                    JsonUtil.obj2String(new HouseDTO()),timeout, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.error("缓存房源完整信息时发生异常，houseId:{}", JsonUtil.obj2String(houseId), e);
+            // 对于房源完整信息，是否存在于redis，不需要强一致性。
+            // 因为C端查询时，如果redis不存在，可以通过查MySQL获取到数据，让后再放入Redis。
+            // throw e;
+        }
+    }
+
 
 
     //缓存房源的信息
