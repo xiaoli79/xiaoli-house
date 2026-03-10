@@ -1,8 +1,7 @@
 package org.xiaoli.xiaoliadminservice.house.service;
 
-import org.xiaoli.xiaoliadminservice.house.domain.dto.HouseAddOrEditReqDTO;
-import org.xiaoli.xiaoliadminservice.house.domain.dto.HouseDTO;
-import org.xiaoli.xiaoliadminservice.house.domain.dto.HouseDetailDTO;
+import org.xiaoli.xiaoliadminservice.house.domain.dto.*;
+import org.xiaoli.xiaolicommoncore.domain.dto.BasePageDTO;
 
 
 public interface IHouseService {
@@ -19,4 +18,13 @@ public interface IHouseService {
      * @return
      */
     HouseDTO detail(Long houseId);
+
+
+
+    /**
+     * 查询房源摘要列表
+     * @param houseListReqDTO
+     * @return
+     */
+    BasePageDTO<HouseDescDTO> list(HouseListReqDTO houseListReqDTO);
 }
