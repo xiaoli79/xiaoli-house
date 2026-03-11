@@ -4,6 +4,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="org.xiaoli.xiaoliadminservice.house.mapper.HouseMapper">
 
+    <!--查询每一页的数据-->
     <select id="selectPageWithStatus"
             parameterType="org.xiaoli.xiaoliadminservice.house.domain.dto.HouseListReqDTO"
             resultType="org.xiaoli.xiaoliadminservice.house.domain.dto.HouseDescDTO">
@@ -40,7 +41,7 @@
     </select>
 
 
-
+<!--查询总数-->
     <select id="selectCountWithStatus"
             parameterType="org.xiaoli.xiaoliadminservice.house.domain.dto.HouseListReqDTO"
             resultType="java.lang.Long">

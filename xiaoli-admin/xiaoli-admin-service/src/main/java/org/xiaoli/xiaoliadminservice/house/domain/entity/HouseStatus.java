@@ -17,7 +17,6 @@ public class HouseStatus extends BaseDO {
 
     // 存毫秒级时间戳
     private Long rentStartTime;
-
     private Long rentEndTime;
 
 }

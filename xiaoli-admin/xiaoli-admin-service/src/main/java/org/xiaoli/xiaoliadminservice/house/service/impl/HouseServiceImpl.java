@@ -22,6 +22,7 @@ import org.xiaoli.xiaoliadminservice.user.mapper.AppUserMapper;
 import org.xiaoli.xiaolicommoncore.domain.dto.BasePageDTO;
 import org.xiaoli.xiaolicommoncore.utils.BeanCopyUtil;
 import org.xiaoli.xiaolicommoncore.utils.JsonUtil;
+import org.xiaoli.xiaolicommoncore.utils.TimestampUtil;
 import org.xiaoli.xiaolicommondomain.domain.ResultCode;
 import org.xiaoli.xiaolicommondomain.exception.ServiceException;
 import org.xiaoli.xiaolicommonredis.service.RedisService;
@@ -213,14 +214,11 @@ public class HouseServiceImpl implements IHouseService {
     public BasePageDTO<HouseDescDTO> list(HouseListReqDTO houseListReqDTO) {
 
         //查询总数，联表查询
-
         BasePageDTO<HouseDescDTO> result = new  BasePageDTO<>();
-
 
         Long totals = houseMapper.selectCountWithStatus(houseListReqDTO);
 
         if(null ==totals){
-
             result.setList(new  ArrayList<>());
             result.setTotals(0);
             result.setTotalPages(0);
@@ -239,12 +237,72 @@ public class HouseServiceImpl implements IHouseService {
 
             log.info("超出查询房源列表范围！HouseListReqDTO:{}",houseListReqDTO);
             result.setList(new  ArrayList<>());
+            
             return result;
         }
 
         result.setList(houses);
         return result;
     }
+
+    /**
+     * 房源状态修改
+     * @param houseStatusEditReqDTO
+     * @return
+     */
+    @Override
+    public void editStatus(HouseStatusEditReqDTO houseStatusEditReqDTO) {
+
+
+        //校验房源是否存在
+        House house = houseMapper.selectById(houseStatusEditReqDTO.getHouseId());
+        if(null == house) {
+            throw new ServiceException("房源不存在，无法修改其状态");
+        }
+
+        //修改状态，必须有状态
+        HouseStatus houseStatus = houseStatusMapper.selectOne(new LambdaQueryWrapper<HouseStatus>()
+                .eq(HouseStatus::getHouseId, house.getId()));
+
+        if(null ==houseStatus || StringUtils.isEmpty(houseStatus.getStatus())) {
+            throw new ServiceException("房源状态不存在，无法修改其状态");
+        }
+
+        //校验状态传参
+        HouseStatusEnum statusEnum= HouseStatusEnum.getEnumByName(houseStatusEditReqDTO.getStatus());
+        if(null == statusEnum) {
+            throw new ServiceException("要修改的房源信息有误，无法修改状态");
+        }
+
+        //更新数据库
+        houseStatus.setStatus(houseStatusEditReqDTO.getStatus());
+        //设置其码~~
+
+        if(StringUtils.isEmpty(houseStatusEditReqDTO.getRentTimeCode())) {
+            throw new ServiceException("出租时长不能为空，无法修改其状态");
+        }
+
+        houseStatus.setRentTimeCode(houseStatusEditReqDTO.getRentTimeCode());
+
+
+//      房源租期开始时间
+        houseStatus.setRentStartTime(TimestampUtil.getCurrentMillis());
+
+        switch(houseStatusEditReqDTO.getRentTimeCode()){
+            case "one_year" -> houseStatus.setRentEndTime(TimestampUtil.getYearLaterMillis(1L));
+            case "half_year" -> houseStatus.setRentEndTime(TimestampUtil.getMonthsLaterMillis(6L));
+            case "thirty_seconds" ->houseStatus.setRentEndTime(TimestampUtil.getSecondsLaterMillis(30L));
+            default -> throw new ServiceException("出租市场错误，无法修改状态！");
+        }
+
+
+        houseStatusMapper.updateById(houseStatus);
+        //更新缓存
+        cacheHouse(house.getId());
+    }
+
+
+
 
     /**
      * 从缓存中查询缓存详情
@@ -372,7 +430,6 @@ public class HouseServiceImpl implements IHouseService {
                 .eq(CityHouse::getHouseId, houseId)
                 .eq(CityHouse::getCityId, oldCityId));
 
-
         //2.新增新的映射记录
         CityHouse cityHouse = new CityHouse();
         cityHouse.setCityId(newCityId);
@@ -383,8 +440,6 @@ public class HouseServiceImpl implements IHouseService {
         //更新缓存
         cacheCityHouses(2,houseId,oldCityId,newCityId);
     }
-
-
 
 
     private void cacheHouse(Long houseId) {
@@ -594,11 +649,8 @@ public class HouseServiceImpl implements IHouseService {
                     tagHouse.setHouseId(houseId);
                     return tagHouse;
                 }).collect(Collectors.toList());
-
-
+        
         tagHouseMapper.insert(tagHouses);
-
-
     }
 
     /**
@@ -619,11 +671,9 @@ public class HouseServiceImpl implements IHouseService {
 //      进行redis缓存
 //      一个城市在有多个房源,下面旨在缓存key:城市ID,value:房源ID
         cacheCityHouses(1,houseId, null,cityId);
-
     }
 
     private void cacheCityHouses(int op, Long houseId, Long oldCityId, Long newCityId) {
-
 
         try{
 
