@@ -66,4 +66,19 @@ public class HouseController {
         return R.ok(result);
     }
 
+
+    /**
+     * 房源状态修改
+     * @param houseStatusEditReqDTO
+     * @return
+     */
+    @PostMapping("/status/edit")
+    public R<?> editStatus(@Validated @RequestBody HouseStatusEditReqDTO houseStatusEditReqDTO){
+
+        houseService.editStatus(houseStatusEditReqDTO);
+
+
+        return R.ok();
+    }
+
 }
