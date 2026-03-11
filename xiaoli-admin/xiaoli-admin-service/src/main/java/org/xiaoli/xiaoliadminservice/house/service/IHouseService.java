@@ -27,4 +27,12 @@ public interface IHouseService {
      * @return
      */
     BasePageDTO<HouseDescDTO> list(HouseListReqDTO houseListReqDTO);
+
+
+    /**
+     * 房源状态修改
+     * @param houseStatusEditReqDTO
+     * @return
+     */
+    void editStatus(HouseStatusEditReqDTO houseStatusEditReqDTO);
 }
