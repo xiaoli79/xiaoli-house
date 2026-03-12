@@ -4,8 +4,10 @@ import com.alibaba.nacos.client.naming.utils.CollectionUtils;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.redisson.api.RLock;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.xiaoli.xiaoliadminapi.config.domain.dto.DictionaryDataDTO;
@@ -26,6 +28,7 @@ import org.xiaoli.xiaolicommoncore.utils.TimestampUtil;
 import org.xiaoli.xiaolicommondomain.domain.ResultCode;
 import org.xiaoli.xiaolicommondomain.exception.ServiceException;
 import org.xiaoli.xiaolicommonredis.service.RedisService;
+import org.xiaoli.xiaolicommonredis.service.RedissonLockService;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -40,6 +43,9 @@ public class HouseServiceImpl implements IHouseService {
     private static final String CITY_HOUSE_PREFIX = "house:list:";
     // 城市完整信息 key 前缀
     private static final String HOUSE_PREFIX = "house:";
+
+    // 分布式锁
+    private static final String LOCK_KEY = "scheduledTask:lock";
 
     @Autowired
     private RegionMapper regionMapper;
@@ -56,16 +62,21 @@ public class HouseServiceImpl implements IHouseService {
     private HouseMapper houseMapper;
 
     @Autowired
-    HouseStatusMapper houseStatusMapper;
+    private HouseStatusMapper houseStatusMapper;
 
     @Autowired
-    CityHouseMapper cityHouseMapper;
+    private CityHouseMapper cityHouseMapper;
 
     @Autowired
-    RedisService redisService;
+    private RedisService redisService;
 
     @Autowired
-    SysDictionaryServiceImpl sysDictionaryService;
+    private SysDictionaryServiceImpl sysDictionaryService;
+
+    @Autowired
+    private RedissonLockService redissonLockService;
+
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long addOrEdit(HouseAddOrEditReqDTO houseAddOrEditReqDTO) {
@@ -442,7 +453,8 @@ public class HouseServiceImpl implements IHouseService {
     }
 
 
-    private void cacheHouse(Long houseId) {
+    @Override
+    public void cacheHouse(Long houseId) {
 
         //1.通过ID查询完整的房源信息
         //参数校验
@@ -460,6 +472,70 @@ public class HouseServiceImpl implements IHouseService {
 //      判断houseDTO是否为空~~
         cacheHouse(houseDTO);
 
+    }
+
+
+
+    /**
+     * 根据用户Id获取房源Id列表
+     * @param userId
+     * @return
+     */
+    @Override
+    public List<Long> listByUserId(Long userId) {
+
+        //参数校验
+        if(null == userId){
+            return null;
+        }
+        //查询数据库
+        List<House> houses = houseMapper.selectList(new LambdaQueryWrapper<House>().eq(House::getUserId, userId));
+
+        if(null == houses || houses.isEmpty()){
+            log.info("该用户下没有房源：{}",userId);
+            return null;
+        }
+        //进行流式转换
+        return houses.stream().map(House::getId).collect(Collectors.toList());
+    }
+
+
+
+
+    /**
+     * 刷新全量缓存
+     * @return
+     */
+    @Override
+    public void refreshHouseIds() {
+
+        //1.查询全量城市列表(2级城市)
+        List<SysRegion> sysRegions = regionMapper.selectList(new LambdaQueryWrapper<SysRegion>()
+                .eq(SysRegion::getLevel, "2"));
+
+        for(SysRegion sysRegion : sysRegions){
+
+            //2.删除当前城市在所有的房源列表映射(Redis)
+            Long cityId = sysRegion.getId();
+            redisService.removeForAllList(CITY_HOUSE_PREFIX+sysRegion.getId());
+
+            //3.查询当前城市下所有的房源列表(MySQL)
+            List<CityHouse> cityHouses = cityHouseMapper.selectList(new LambdaQueryWrapper<CityHouse>()
+                    .eq(CityHouse::getCityId, cityId));
+
+            //4.新增当前城市在所有的房源列表映射(Redis)
+            if(!CollectionUtils.isEmpty(cityHouses)){
+                redisService.setCacheList(
+                        CITY_HOUSE_PREFIX+cityId,
+                        cityHouses.stream().map(CityHouse::getHouseId).distinct()
+                                .collect(Collectors.toList()));
+            }
+
+            //5.更新房源列表详细信息(Redis)
+            for(CityHouse cityHouse : cityHouses){
+                cacheHouse(cityHouse.getHouseId());
+            }
+        }
     }
 
 
@@ -721,6 +797,96 @@ public class HouseServiceImpl implements IHouseService {
             throw new ServiceException("传递的标签列表有误！",ResultCode.INVALID_PARA.getCode());
         }
         //4.设备码，房源基本信息
+    }
+
+
+
+
+//    // 每天00:00开始执行任务
+//    @Scheduled (cron = "0 0 0 * * ?")
+//    public void scheduledHouseStatus(){
+//
+//        log.info("开始执行定时任务");
+//        //加分布式锁
+//        String value = UUID.randomUUID().toString();
+//
+//       try{
+//           Boolean lock = redisService.setCacheObjectIfAbsent(LOCK_KEY, value, 180L, TimeUnit.SECONDS);
+//           if(Boolean.TRUE.equals(lock)){
+//
+//               //查询已经出租的房源
+//               List<HouseStatus> rentingHouses = houseStatusMapper.selectList(new LambdaQueryWrapper<HouseStatus>()
+//                       .eq(HouseStatus::getStatus, HouseStatusEnum.RENTING.name()));
+//
+//               //过滤需要扭转状态的房源（出租已经到了过期时间）
+//               List<HouseStatus> needConvertList = rentingHouses.stream()
+//                       .filter(houseStatus -> null != houseStatus.getRentEndTime()
+//                               && 0 > TimestampUtil.calculateDifferenceMillis(
+//                               TimestampUtil.getCurrentMillis(),houseStatus.getRentEndTime()) )
+//                       .collect(Collectors.toList());
+//
+//               //把房源状态进行更改~~
+//               for(HouseStatus houseStatus : needConvertList){
+//
+//                   HouseStatusEditReqDTO houseStatusEditReqDTO = new HouseStatusEditReqDTO();
+//                   houseStatusEditReqDTO.setHouseId(houseStatus.getHouseId());
+//                   houseStatusEditReqDTO.setStatus(HouseStatusEnum.UP.name());
+//                   editStatus(houseStatusEditReqDTO);
+//               }
+//           }else{
+//               log.info("获取锁失败，跳过执行");
+//           }
+//        }finally {
+//           // 解锁，只能自己解锁自己，不能其他线程解锁
+//           redisService.cad(LOCK_KEY,value);
+//       }
+//
+//    }
+
+    /**
+     * 使用Redission分布锁
+     */
+    // 每天00:00开始执行任务
+    @Scheduled (cron = "0 0 0 * * ?")
+    public void scheduledHouseStatus() {
+
+        log.info("开始执行定时任务");
+        //加分布式锁
+
+        RLock rLock = redissonLockService.acquire(LOCK_KEY, -1);
+
+        try {
+            if (null == rLock) {
+                log.info("定时任务被其他实例执行！");
+                return;
+            }
+            //查询已经出租的房源
+            List<HouseStatus> rentingHouses = houseStatusMapper.selectList(new LambdaQueryWrapper<HouseStatus>()
+                    .eq(HouseStatus::getStatus, HouseStatusEnum.RENTING.name()));
+
+            //过滤需要扭转状态的房源（出租已经到了过期时间）
+            List<HouseStatus> needConvertList = rentingHouses.stream()
+                    .filter(houseStatus -> null != houseStatus.getRentEndTime()
+                            && 0 > TimestampUtil.calculateDifferenceMillis(
+                            TimestampUtil.getCurrentMillis(), houseStatus.getRentEndTime()))
+                    .collect(Collectors.toList());
+
+            //把房源状态进行更改~~
+            for (HouseStatus houseStatus : needConvertList) {
+
+                HouseStatusEditReqDTO houseStatusEditReqDTO = new HouseStatusEditReqDTO();
+                houseStatusEditReqDTO.setHouseId(houseStatus.getHouseId());
+                houseStatusEditReqDTO.setStatus(HouseStatusEnum.UP.name());
+                editStatus(houseStatusEditReqDTO);
+            }
+            log.info("获取锁失败，跳过执行");
+        } finally {
+            // 解锁，只能自己解锁自己，不能其他线程解锁
+            if (rLock.isLocked() && rLock.isHeldByCurrentThread()) {
+                redissonLockService.releaseLock(rLock);
+            }
+
+        }
     }
 
 }

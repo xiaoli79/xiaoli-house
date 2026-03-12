@@ -24,7 +24,11 @@ public class HouseController {
     @Autowired
     private IHouseService houseService;
 
-
+    /**
+     * 房源信息的添加与修改
+     * @param houseAddOrEditReqDTO
+     * @return
+     */
     @PostMapping("add_edit")
     public R<Long> addOrEdit(@Validated @RequestBody HouseAddOrEditReqDTO houseAddOrEditReqDTO){
 
@@ -80,5 +84,29 @@ public class HouseController {
 
         return R.ok();
     }
+
+
+    /**
+     * 刷新全量缓存
+     * @return
+     */
+    @GetMapping("/refresh")
+    public R<Void> refreshHouseIds(){
+        houseService.refreshHouseIds();
+        return R.ok();
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 }

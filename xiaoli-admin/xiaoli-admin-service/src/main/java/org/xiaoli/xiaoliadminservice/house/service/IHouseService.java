@@ -3,6 +3,8 @@ package org.xiaoli.xiaoliadminservice.house.service;
 import org.xiaoli.xiaoliadminservice.house.domain.dto.*;
 import org.xiaoli.xiaolicommoncore.domain.dto.BasePageDTO;
 
+import java.util.List;
+
 
 public interface IHouseService {
 
@@ -35,4 +37,28 @@ public interface IHouseService {
      * @return
      */
     void editStatus(HouseStatusEditReqDTO houseStatusEditReqDTO);
+
+
+    /**
+     * 根据ID更新房源缓存
+     * @param houseId
+     */
+    void cacheHouse(Long houseId);
+
+
+    /**
+     * 根据用户Id获取房源Id列表
+     * @param userId
+     * @return
+     */
+    List<Long> listByUserId(Long userId);
+
+
+
+
+    /**
+     * 刷新全量缓存
+     * @return
+     */
+    void refreshHouseIds();
 }
