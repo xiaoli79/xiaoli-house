@@ -21,7 +21,7 @@ public class RabbitConfig {
      */
     @Bean
     public FanoutExchange editUserExchange(){
-        return new FanoutExchange(EXCHANGE_NAME,true,true);
+        return new FanoutExchange(EXCHANGE_NAME,true,false);
 //                                交换机名称             持久化          自动删除
     }
 
