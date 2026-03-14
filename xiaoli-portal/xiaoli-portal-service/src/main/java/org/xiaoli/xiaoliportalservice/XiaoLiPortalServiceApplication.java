@@ -1,7 +1,6 @@
-package org.xiaoli.xiaoliportalservice.user;
+package org.xiaoli.xiaoliportalservice;
 
 import lombok.extern.slf4j.Slf4j;
-import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;
@@ -16,6 +15,9 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 @Slf4j
 //本项目中没有mapper不能够扫描，除非在pom.xml添加别的模块的依赖就可以~~
 //@MapperScan("org.xiaoli.**.mapper")
+
+
+//这个是用来启动这个feign
 @EnableFeignClients(basePackages = {"org.xiaoli.**.feign"})
 public class XiaoLiPortalServiceApplication {
     public static void main(String[] args) {
