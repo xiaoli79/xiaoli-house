@@ -2,8 +2,9 @@ package org.xiaoli.xiaoliportalservice.homepage.service;
 
 
 import org.springframework.stereotype.Service;
+import org.xiaoli.xiaoliportalservice.homepage.domain.dto.PullDataListReqDTO;
 import org.xiaoli.xiaoliportalservice.homepage.domain.vo.CityDescVO;
-
+import org.xiaoli.xiaoliportalservice.homepage.domain.vo.PullDataListVO;
 
 
 public interface IHomePageService {
@@ -15,4 +16,14 @@ public interface IHomePageService {
      * @return
      */
     CityDescVO getCityDesc(Double lat, Double lng);
+
+
+
+
+    /**
+     * 获取下拉筛选数据列表
+     * @param pullDataListReqDTO
+     * @return
+     */
+    PullDataListVO getPullData(PullDataListReqDTO pullDataListReqDTO);
 }
