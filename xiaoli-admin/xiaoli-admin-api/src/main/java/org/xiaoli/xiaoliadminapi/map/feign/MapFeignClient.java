@@ -20,7 +20,7 @@ import java.util.Map;
 /**
  * 区域信息VO
  */
-@FeignClient(contextId = "mapFeignClient",value = "xiao-admin")
+@FeignClient(contextId = "mapFeignClient",value = "xiaoli-admin")
 public interface MapFeignClient {
 
     /**
