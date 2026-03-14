@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * 字典服务的远程调用
  */
-@FeignClient(contextId = "dictionaryFeignClient",value = "bite-admin")
+@FeignClient(contextId = "dictionaryFeignClient",value = "xiaoli-admin")
 public interface DicitonaryFeignClient {
 
     /**

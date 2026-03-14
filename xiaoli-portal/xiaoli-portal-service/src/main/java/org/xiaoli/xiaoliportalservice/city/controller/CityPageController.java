@@ -17,7 +17,10 @@ public class CityPageController {
     private ICityService cityService;
 
 
-
+    /**
+     * 获取热门城市以及A-Z城市列表
+     * @return
+     */
     @GetMapping("/get/nologin")
     public R<CityPageVO> cityPage(){
         return R.ok(cityService.getCityPage());
