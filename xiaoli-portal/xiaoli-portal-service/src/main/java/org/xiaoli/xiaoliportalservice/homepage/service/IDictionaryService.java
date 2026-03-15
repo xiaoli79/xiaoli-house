@@ -18,4 +18,11 @@ public interface IDictionaryService {
      */
     Map<String, List<DicDataDTO>> batchFindDictionaryDataByType(List<String> types);
 
+
+    /**
+     * 根据字典数据的keys获取字典数据
+     * @param dataKeys
+     * @return
+     */
+    Map<String, DicDataDTO> batchFindDictionaryData(List<String> dataKeys);
 }

@@ -11,6 +11,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.xiaoli.xiaoliadminapi.config.domain.dto.DictionaryDataDTO;
+import org.xiaoli.xiaoliadminapi.house.domain.dto.DeviceDTO;
+import org.xiaoli.xiaoliadminapi.house.domain.dto.TagDTO;
 import org.xiaoli.xiaoliadminservice.config.service.impl.SysDictionaryServiceImpl;
 import org.xiaoli.xiaoliadminservice.house.domain.dto.*;
 import org.xiaoli.xiaoliadminservice.house.domain.entity.*;

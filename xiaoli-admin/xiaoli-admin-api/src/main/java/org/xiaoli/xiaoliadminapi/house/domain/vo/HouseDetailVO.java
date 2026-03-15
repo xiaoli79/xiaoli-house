@@ -1,8 +1,8 @@
-package org.xiaoli.xiaoliadminservice.house.domain.vo;
+package org.xiaoli.xiaoliadminapi.house.domain.vo;
 
 import lombok.Data;
-import org.xiaoli.xiaoliadminservice.house.domain.dto.DeviceDTO;
-import org.xiaoli.xiaoliadminservice.house.domain.dto.TagDTO;
+import org.xiaoli.xiaoliadminapi.house.domain.dto.DeviceDTO;
+import org.xiaoli.xiaoliadminapi.house.domain.dto.TagDTO;
 
 import java.io.Serializable;
 import java.util.List;

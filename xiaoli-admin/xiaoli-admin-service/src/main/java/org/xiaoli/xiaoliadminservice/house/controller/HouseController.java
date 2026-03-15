@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.xiaoli.xiaoliadminservice.house.domain.dto.*;
-import org.xiaoli.xiaoliadminservice.house.domain.vo.HouseDetailVO;
+import org.xiaoli.xiaoliadminapi.house.domain.vo.HouseDetailVO;
 import org.xiaoli.xiaoliadminservice.house.domain.vo.HouseVO;
 import org.xiaoli.xiaoliadminservice.house.service.IHouseService;
 import org.xiaoli.xiaolicommoncore.domain.dto.BasePageDTO;

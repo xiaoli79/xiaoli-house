@@ -1,4 +1,4 @@
-package org.xiaoli.xiaoliadminservice.house.domain.dto;
+package org.xiaoli.xiaoliadminapi.house.domain.dto;
 
 
 import lombok.Data;

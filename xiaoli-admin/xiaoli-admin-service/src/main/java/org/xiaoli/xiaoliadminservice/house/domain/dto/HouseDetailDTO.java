@@ -2,8 +2,8 @@ package org.xiaoli.xiaoliadminservice.house.domain.dto;
 
 
 import lombok.Data;
-import org.springframework.beans.BeanUtils;
-import org.xiaoli.xiaoliadminservice.house.domain.vo.HouseDetailVO;
+import org.xiaoli.xiaoliadminapi.house.domain.dto.DeviceDTO;
+import org.xiaoli.xiaoliadminapi.house.domain.dto.TagDTO;
 
 import java.util.List;
 

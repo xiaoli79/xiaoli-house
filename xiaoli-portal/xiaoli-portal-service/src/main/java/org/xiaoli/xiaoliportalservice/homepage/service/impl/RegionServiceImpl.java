@@ -81,8 +81,6 @@ public class RegionServiceImpl implements IRegionService {
 
         cacheRegionList(parentId,regionList);
 
-
-
         return regionList;
     }
 
@@ -103,7 +101,6 @@ public class RegionServiceImpl implements IRegionService {
                 JsonUtil.obj2String(regionList),
                 REGION_CHILDREN_TIMEOUT, TimeUnit.MINUTES);
     }
-
 
     /**
      * 查缓存
