@@ -47,6 +47,7 @@ public class HouseController implements HouseFeignClient {
      * @return
      */
     @GetMapping("/detail")
+    @Override
     public R<HouseDetailVO> detail(@RequestParam @Validated Long houseId){
 
         HouseDTO houseDTO =  houseService.detail(houseId);
