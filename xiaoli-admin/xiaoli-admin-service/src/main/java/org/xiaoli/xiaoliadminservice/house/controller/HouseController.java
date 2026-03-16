@@ -6,11 +6,14 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.xiaoli.xiaoliadminapi.house.domain.dto.SearchHouseListReqDTO;
+import org.xiaoli.xiaoliadminapi.house.feign.HouseFeignClient;
 import org.xiaoli.xiaoliadminservice.house.domain.dto.*;
 import org.xiaoli.xiaoliadminapi.house.domain.vo.HouseDetailVO;
 import org.xiaoli.xiaoliadminservice.house.domain.vo.HouseVO;
 import org.xiaoli.xiaoliadminservice.house.service.IHouseService;
 import org.xiaoli.xiaolicommoncore.domain.dto.BasePageDTO;
+import org.xiaoli.xiaolicommoncore.utils.BeanCopyUtil;
 import org.xiaoli.xiaolicommondomain.domain.R;
 import org.xiaoli.xiaolicommondomain.domain.vo.BasePageVO;
 
@@ -18,7 +21,7 @@ import org.xiaoli.xiaolicommondomain.domain.vo.BasePageVO;
 @Slf4j
 @RestController
 @RequestMapping("/house")
-public class HouseController {
+public class HouseController implements HouseFeignClient {
 
 
     @Autowired
@@ -96,17 +99,21 @@ public class HouseController {
         return R.ok();
     }
 
+    /**
+     * 查询房源列表，支持筛选、排序、翻页
+     * @param searchHouseReqDTO
+     * @return
+     */
+    @Override
+//    @PostMapping("/list/search")
+    public R<BasePageVO<HouseDetailVO>> searchList(@Validated @RequestBody SearchHouseListReqDTO searchHouseReqDTO) {
 
 
-
-
-
-
-
-
-
-
-
-
-
+        BasePageVO<HouseDetailVO> result = new   BasePageVO<>();
+        BasePageDTO<HouseDTO>  searchDTO  =houseService.searchList(searchHouseReqDTO);
+        result.setTotals(searchDTO.getTotals());
+        result.setTotalPages(searchDTO.getTotalPages());
+        result.setList(BeanCopyUtil.copyList(searchDTO.getList(),HouseDetailVO::new));
+        return R.ok(result);
+    }
 }

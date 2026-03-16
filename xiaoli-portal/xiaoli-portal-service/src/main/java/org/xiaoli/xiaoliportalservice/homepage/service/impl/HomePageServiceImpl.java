@@ -36,8 +36,6 @@ import java.util.stream.Stream;
 
 
 @Service
-
-
 @Slf4j
 public class HomePageServiceImpl implements IHomePageService {
 
