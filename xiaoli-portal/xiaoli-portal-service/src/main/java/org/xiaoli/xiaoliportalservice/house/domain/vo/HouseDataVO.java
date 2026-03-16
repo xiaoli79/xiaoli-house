@@ -1,4 +1,4 @@
-package org.xiaoli.xiaoliadminservice.house.domain.dto;
+package org.xiaoli.xiaoliportalservice.house.domain.vo;
 
 
 import lombok.Data;
@@ -8,12 +8,12 @@ import org.xiaoli.xiaoliadminapi.house.domain.dto.TagDTO;
 import java.util.List;
 
 @Data
-public class HouseDetailDTO {
+public class HouseDataVO {
+
 
     private Long houseId;
     private Long userId;
     private String nickName;
-    private String avatar;
     private String title;
     private String rentType;
     private Integer floor;
@@ -36,13 +36,4 @@ public class HouseDetailDTO {
     private String detailAddress;
     private Double longitude;
     private Double latitude;
-    private String status;
-    private String rentTimeCode;
-
-
-    /**
-     * 将DTO转换为VO
-     * @return
-     */
-
 }

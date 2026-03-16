@@ -1,0 +1,66 @@
+package org.xiaoli.xiaoliadminservice.house.service.filter;
+
+import com.alibaba.nacos.client.naming.utils.CollectionUtils;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.xiaoli.xiaoliadminapi.house.domain.dto.SearchHouseListReqDTO;
+import org.xiaoli.xiaoliadminservice.house.domain.dto.HouseDTO;
+
+import java.util.List;
+
+
+/**
+ * 租金范围筛选策略
+ */
+@Slf4j
+@Component
+public class RentalRangesFilter implements IHouseFilter{
+
+
+
+    @Override
+    public Boolean filter(HouseDTO houseDTO, SearchHouseListReqDTO reqDTO) {
+        return CollectionUtils.isEmpty(reqDTO.getRentalRanges())
+                || filterHouseByRentalRanges(houseDTO.getPrice(),reqDTO.getRentalRanges());
+    }
+
+    private boolean filterHouseByRentalRanges(Double price, List<String> rentalRanges) {
+
+        if(null == price){
+            return false;
+        }
+
+        boolean isPriceInRange =false;
+
+        for (String rentalRange : rentalRanges) {
+            switch (rentalRange){
+                case "range_1":
+                    isPriceInRange = price < 1000;
+                    break;
+                case "range_2":
+                    isPriceInRange = price > 1000 && price <=1500;
+                    break;
+                case "range_3":
+                    isPriceInRange = price > 1500 && price <= 2000;
+                    break;
+                case "range_4":
+                    isPriceInRange = price > 2000 && price <= 3000;
+                    break;
+                case "range_5":
+                    isPriceInRange = price >= 3000 && price <= 5000;
+                    break;
+                case "range_6":
+                    isPriceInRange = price > 5000;
+                    break;
+                default:
+                    log.error("超出资金筛选范围, rentalRange:{}", rentalRange);
+                    break;
+            }
+            if(isPriceInRange){
+                return true;
+            }
+        }
+        return false;
+
+    }
+}

@@ -5,8 +5,11 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 ;
 import org.xiaoli.xiaolicommondomain.domain.R;
+import org.xiaoli.xiaolicommondomain.domain.vo.BasePageVO;
+import org.xiaoli.xiaoliportalservice.homepage.domain.dto.HouseListReqDTO;
 import org.xiaoli.xiaoliportalservice.homepage.domain.dto.PullDataListReqDTO;
 import org.xiaoli.xiaoliportalservice.homepage.domain.vo.CityDescVO;
+import org.xiaoli.xiaoliportalservice.homepage.domain.vo.HouseDescVO;
 import org.xiaoli.xiaoliportalservice.homepage.domain.vo.PullDataListVO;
 import org.xiaoli.xiaoliportalservice.homepage.service.IHomePageService;
 
@@ -42,11 +45,18 @@ public class HomePageController {
      */
     @PostMapping("/pull_list/get/nologin")
     public R<PullDataListVO> getPullData(@Validated @RequestBody PullDataListReqDTO pullDataListReqDTO) {
-
-
         return R.ok(homePageService.getPullData(pullDataListReqDTO));
+    }
 
 
+    /**
+     * 查询房源列表
+     * @param houseListReqDTO
+     * @return
+     */
+    @PostMapping("/house_edit/search/nologin")
+    public R<BasePageVO<HouseDescVO>> houseList(@Validated @RequestBody HouseListReqDTO houseListReqDTO){
+        return R.ok(homePageService.houseList(houseListReqDTO));
     }
 }
 

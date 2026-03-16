@@ -1,5 +1,6 @@
 package org.xiaoli.xiaoliadminservice.house.service;
 
+import org.xiaoli.xiaoliadminapi.house.domain.dto.SearchHouseListReqDTO;
 import org.xiaoli.xiaoliadminservice.house.domain.dto.*;
 import org.xiaoli.xiaolicommoncore.domain.dto.BasePageDTO;
 
@@ -61,4 +62,13 @@ public interface IHouseService {
      * @return
      */
     void refreshHouseIds();
+
+
+
+    /**
+     * 查询房源列表，支持筛选、翻页、
+     * @param searchHouseReqDTO
+     * @return
+     */
+    BasePageDTO<HouseDTO> searchList(SearchHouseListReqDTO searchHouseReqDTO);
 }

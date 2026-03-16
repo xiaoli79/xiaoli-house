@@ -11,12 +11,18 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.xiaoli.xiaoliadminapi.config.domain.dto.DictionaryDataDTO;
+import org.xiaoli.xiaoliadminapi.house.domain.dto.DeviceDTO;
+import org.xiaoli.xiaoliadminapi.house.domain.dto.SearchHouseListReqDTO;
+import org.xiaoli.xiaoliadminapi.house.domain.dto.TagDTO;
 import org.xiaoli.xiaoliadminservice.config.service.impl.SysDictionaryServiceImpl;
 import org.xiaoli.xiaoliadminservice.house.domain.dto.*;
 import org.xiaoli.xiaoliadminservice.house.domain.entity.*;
 import org.xiaoli.xiaoliadminservice.house.domain.enums.HouseStatusEnum;
 import org.xiaoli.xiaoliadminservice.house.mapper.*;
 import org.xiaoli.xiaoliadminservice.house.service.IHouseService;
+import org.xiaoli.xiaoliadminservice.house.service.filter.IHouseFilter;
+import org.xiaoli.xiaoliadminservice.house.service.strategy.ISortStrategy;
+import org.xiaoli.xiaoliadminservice.house.service.strategy.SortStrategyFactory;
 import org.xiaoli.xiaoliadminservice.map.domain.entity.SysRegion;
 import org.xiaoli.xiaoliadminservice.map.mapper.RegionMapper;
 import org.xiaoli.xiaoliadminservice.user.domain.entity.AppUser;
@@ -47,6 +53,11 @@ public class HouseServiceImpl implements IHouseService {
     // 分布式锁
     private static final String LOCK_KEY = "scheduledTask:lock";
 
+
+
+    @Autowired
+    private final Map<String, IHouseFilter> houseFilterMap = new HashMap<>();
+
     @Autowired
     private RegionMapper regionMapper;
 
@@ -75,6 +86,9 @@ public class HouseServiceImpl implements IHouseService {
 
     @Autowired
     private RedissonLockService redissonLockService;
+
+
+
 
 
     @Override
@@ -536,6 +550,124 @@ public class HouseServiceImpl implements IHouseService {
                 cacheHouse(cityHouse.getHouseId());
             }
         }
+    }
+
+
+
+
+    /**
+     * 查询房源列表，支持筛选、排序、翻页
+     * @param searchHouseReqDTO
+     * @return
+     */
+    @Override
+    public BasePageDTO<HouseDTO> searchList(SearchHouseListReqDTO searchHouseReqDTO) {
+
+
+        //1.获取全量城市信息列表
+       List<HouseDTO> houseDTOList =  getCacheHouseListByCity(searchHouseReqDTO.getCityId());
+
+        return filterHouse(houseDTOList,searchHouseReqDTO);
+
+    }
+
+    private BasePageDTO<HouseDTO> filterHouse(List<HouseDTO> houseDTOList, SearchHouseListReqDTO searchHouseReqDTO) {
+
+        //1.筛选
+        List<HouseDTO> validHouseDTOList = houseFilter(houseDTOList,searchHouseReqDTO);
+
+
+        //2.排序
+        validHouseDTOList = houseSorting(validHouseDTOList,searchHouseReqDTO);
+
+
+        //3.翻页
+        return housePage(validHouseDTOList,searchHouseReqDTO);
+
+    }
+
+    private BasePageDTO<HouseDTO> housePage(List<HouseDTO> houseDTOList,
+                                            SearchHouseListReqDTO reqDTO) {
+
+
+        //这是干啥的？？
+        List<HouseDTO> pageHouseDTOList = houseDTOList.stream()
+                .skip(reqDTO.getOffset())
+                .limit(reqDTO.getPageSize())
+                .collect(Collectors.toList());
+
+        BasePageDTO<HouseDTO> result = new BasePageDTO<>();
+        result.setTotals(houseDTOList.size());
+        result.setTotalPages(
+                BasePageDTO.calculateTotalPages(houseDTOList.size(), reqDTO.getPageSize()));
+        result.setList(pageHouseDTOList);
+        return result;
+    }
+
+    private List<HouseDTO> houseSorting(List<HouseDTO> houseDTOList, SearchHouseListReqDTO searchHouseReqDTO) {
+        //1.多策略：只需要指定一个策略执行即可
+        //2.工厂模式：工厂根据要求给我生产出一个策略即可
+        ISortStrategy sortStrategy = SortStrategyFactory.getSortStrategy(searchHouseReqDTO.getSort());
+        return sortStrategy.sort(houseDTOList,searchHouseReqDTO);
+    }
+
+    private List<HouseDTO> houseFilter(List<HouseDTO> houseDTOList, SearchHouseListReqDTO searchHouseReqDTO) {
+
+        return houseDTOList.stream()
+                .filter(houseDTO -> houseFilterMap.values().stream()  //让houseDTO走一遍全部的筛选策略
+                        .allMatch(houseFilter->{
+                            try{
+                                return houseFilter.filter(houseDTO,searchHouseReqDTO);
+                            }catch (Exception e){
+                                log.error("过滤房源发生异常:houseDTO:{},filter{}",
+                                        JsonUtil.obj2String(houseDTO),
+                                        houseFilter.getClass().getName(),e);
+
+                                return false;
+
+                            }
+                        })
+                ).collect(Collectors.toList());
+    }
+
+
+    private List<HouseDTO> getCacheHouseListByCity( Long cityId) {
+
+
+        List<HouseDTO> resultList = new ArrayList<>();
+
+        if(null == cityId){
+            log.error("根据城市ID来查询房源列表时，城市ID为空");
+            return null;
+        }
+
+        //1.从缓存中根据城市ID来查询房源ID
+        List<Long> houseIds = getCacheCityHouseId(cityId);
+        //对房源Id进行去重~~
+        Set<Long> houseIdSet = new HashSet<>(houseIds);
+
+        //2.根据房源Id来获取房源的详细信息
+        for(Long houseId : houseIdSet){
+            HouseDTO houseDTO = detail(houseId);
+            if(null != houseDTO){
+                resultList.add(houseDTO);
+            }
+        }
+        return resultList;
+    }
+
+    private List<Long> getCacheCityHouseId(Long cityId) {
+
+        if(null == cityId){
+            return null;
+        }
+        List<Long> houseIds  =  new ArrayList<>();
+        try{
+            houseIds = redisService.getCacheList(CITY_HOUSE_PREFIX + cityId, Long.class);
+        }catch (Exception e){
+            log.error("从缓存中获取城市下的房源列表异常,key:{}",CITY_HOUSE_PREFIX + cityId,e);
+        }
+        return houseIds;
     }
 
 
