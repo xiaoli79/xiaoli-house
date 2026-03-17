@@ -11,12 +11,12 @@ spring:
       discovery:
         username: nacos
         password: bite@123
-        namespace: bitehouse-${RUN_ENV}
+        namespace: frameworkjava-${RUN_ENV}
         server-addr: ${NACOS_ADDR}
       config:
         username: nacos
         password: bite@123
-        namespace: bitehouse-${RUN_ENV}
+        namespace: frameworkjava-${RUN_ENV}
         server-addr: ${NACOS_ADDR}
         file-extension: yaml
         # 共享配置
