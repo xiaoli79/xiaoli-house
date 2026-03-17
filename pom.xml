@@ -21,6 +21,7 @@
         <module>xiaoli-portal</module>
         <module>xiaoli-gateway</module>
         <module>xiaoli-mstemplate</module>
+        <module>xiaoli-chat</module>
     </modules>
 
     <version>1.0-SNAPSHOT</version>
