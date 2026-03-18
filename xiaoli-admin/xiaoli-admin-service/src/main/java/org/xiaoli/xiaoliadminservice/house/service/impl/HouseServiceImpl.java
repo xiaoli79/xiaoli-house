@@ -614,7 +614,7 @@ public class HouseServiceImpl implements IHouseService {
     private List<HouseDTO> houseFilter(List<HouseDTO> houseDTOList, SearchHouseListReqDTO searchHouseReqDTO) {
 
         return houseDTOList.stream()
-                .filter(houseDTO -> houseFilterMap.values().stream()  //让houseDTO走一遍全部的筛选策略
+                .filter(houseDTO -> houseFilterMap.values().stream()  //让houseDTO走一遍filter所有的筛选策略
                         .allMatch(houseFilter->{
                             try{
                                 return houseFilter.filter(houseDTO,searchHouseReqDTO);
