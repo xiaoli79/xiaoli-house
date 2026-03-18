@@ -3,12 +3,20 @@ package org.xiaoli.xiaolichatservice.service.websocket;
 import jakarta.websocket.*;
 import jakarta.websocket.server.ServerEndpoint;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.xiaoli.xiaolichatservice.config.ServerEncoder;
 import org.xiaoli.xiaolichatservice.config.WebSockerConfig;
 import org.xiaoli.xiaolichatservice.domain.dto.WebSocketDTO;
 import org.xiaoli.xiaolichatservice.domain.enums.WebSocketDataTypeEnum;
 import org.xiaoli.xiaolicommoncore.utils.JsonUtil;
+import org.xiaoli.xiaolicommondomain.domain.ResultCode;
+import org.xiaoli.xiaolicommondomain.exception.ServiceException;
+import org.xiaoli.xiaolicommonsecurity.domain.dto.LoginUserDTO;
+import org.xiaoli.xiaolicommonsecurity.service.TokenService;
+import org.xiaoli.xiaolicommonsecurity.utils.SecurityUtil;
+import java.io.IOException;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 @ServerEndpoint(value = "/websocket",
@@ -18,20 +26,82 @@ import org.xiaoli.xiaolicommoncore.utils.JsonUtil;
 @Slf4j
 public class WebSocketServer {
 
+
+
+    //WebSocketServer不能直接通过@Autowired进行注入
+    // 不能使用 @Autowired 或 @Resource
+    // 因为 ws 是通过 WebSocketConfig.getEndpointInstance() 方法来获取每个连接对应的调用对象
+    // 而getEndpointInstance默认是通过反射来构造的，而不是 Spring 容器获取连接对象
+
     //建立连接后的会话对象
     private Session session;
 
+    /**
+     * 存放服务器和每个客户端对应的WebSocket对象
+     * 建立连接之后去设值，断开连接之后需要删除
+     */
+    private static ConcurrentHashMap<Long, WebSocketServer> webSocketMap = new ConcurrentHashMap<>();
+
+    private Long userId;
+
+    private static TokenService tokenService;
+
+    /**
+     * Autowired 注解作用与方法
+     * 当类实例化时，Spring容器会自动解析方法的参数。并为参数找到与其匹配的Bean实例，然后调用这个方法并注入
+     * @param tokenService
+     * @return
+     */
+    @Autowired
+    public TokenService setTokenService(TokenService tokenService) {
+        return WebSocketServer.tokenService = tokenService;
+    }
+
+
     @OnOpen
-    public void onOpen(Session session) {
-        log.info("连接成功");
-        this.session = session;
+    public void onOpen(Session session) throws IOException {
+
+
+        try{
+            String token =(String) session.getUserProperties().get("Authorization");
+            token = SecurityUtil.replaceTokenPrefix(token);
+
+            if(null == token){
+                log.error("没有传递用户的token信息");
+                throw new ServiceException("没有传递用户的token信息", ResultCode.INVALID_PARA.getCode());
+            }
+
+            LoginUserDTO loginUserDTO = tokenService.getLoginUser(token);
+
+            if(null == loginUserDTO || null == loginUserDTO.getUserId()){
+                throw new ServiceException("用户token有误",ResultCode.INVALID_PARA.getCode());
+            }
+
+            this.session = session;
+            this.userId = loginUserDTO.getUserId();
+
+            webSocketMap.put(userId,this);
+            log.info("用户{}已经连接",userId);
+
+            log.info("连接成功");
+            this.session = session;
+
+        }catch (Exception e){
+            log.error("连接出现异常，关闭连接",e);
+            session.close();
+        }
+
     }
 
 
     @OnClose
     public void onClose() {
-        log.info("断开连接成功");
+        if(userId != null &&  webSocketMap.containsKey(userId)){
+            webSocketMap.remove(userId);
+        }
+        log.info("用户{}已经关闭连接",userId);
         this.session = null;
+        this.userId = null;
     }
 
 
@@ -40,7 +110,6 @@ public class WebSocketServer {
         log.error("websocket出现连接异常");
         log.error(throwable.getMessage(), throwable);
     }
-
 
     /**
      * 服务器接收到的数据
@@ -99,12 +168,9 @@ public class WebSocketServer {
 
 
     private void handleChatMessage() {
-
-
     }
 
     private void handleHeartBeatMessage() {
-
     }
 
     private  void handleUnknowMessage(String type) {
@@ -122,8 +188,6 @@ public class WebSocketServer {
             log.error("处理文本消息异常!",e);
         }
     }
-
-
     /**
      * 给当前连接会话推送消息
      *
