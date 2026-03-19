@@ -78,18 +78,21 @@ public class SessionStatusDetailDTO {
         return loginUserId.equals(user1.getUser().getUserId()) ? user2 : user1;
     }
 
+    /**
+     * 静态内部类
+     */
     @Data
     public static class UserInfo {
+
         /**
          * 用户信息
          */
-        private AppUserDTO user;
+            private AppUserDTO user;
 
         /**
          * 对于对方消息的未浏览数
          */
         private Integer notVisitedCount = 0;
+
     }
-
-
 }
