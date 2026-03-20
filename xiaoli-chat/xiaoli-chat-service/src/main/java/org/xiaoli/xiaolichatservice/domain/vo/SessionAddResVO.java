@@ -7,7 +7,6 @@ import org.xiaoli.xiaoliadminapi.appUser.domain.vo.AppUserVO;
 @Data
 public class SessionAddResVO {
 
-
     private Long sessionId;
 
     private AppUserVO loginUser;

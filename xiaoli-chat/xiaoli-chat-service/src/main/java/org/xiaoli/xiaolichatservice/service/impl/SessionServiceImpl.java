@@ -11,7 +11,7 @@ import org.xiaoli.xiaoliadminapi.appUser.feign.AppUserFeignClient;
 import org.xiaoli.xiaolichatservice.domain.dto.SessionAddReqDTO;
 import org.xiaoli.xiaolichatservice.domain.dto.SessionStatusDetailDTO;
 import org.xiaoli.xiaolichatservice.domain.vo.SessionAddResVO;
-;
+
 import org.xiaoli.xiaolichatservice.entity.Session;
 import org.xiaoli.xiaolichatservice.mapper.SessionMapper;
 import org.xiaoli.xiaolichatservice.service.ChatCacheService;
@@ -131,21 +131,5 @@ public class SessionServiceImpl implements ISessionService {
         resVO.setOtherUser(
                 sessionStatusDetailDTO.getToUser(loginUserId).getUser().convertToVO());
         return resVO;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        return null;
     }
 }

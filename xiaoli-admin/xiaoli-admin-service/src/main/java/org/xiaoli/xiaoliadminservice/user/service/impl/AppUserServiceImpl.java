@@ -273,7 +273,7 @@ public class AppUserServiceImpl implements IAppUserService {
                .map(appUser ->  {
                    AppUserDTO appUserDTO = new AppUserDTO();
                    BeanUtils.copyProperties(appUser,appUserDTO);
-                   appUserDTO.setPhoneNumber(AESUtil.encryptHex(appUser.getPhoneNumber()));
+                   appUserDTO.setPhoneNumber(appUser.getPhoneNumber());
                    appUserDTO.setUserId(appUser.getId());
                    return appUserDTO;
                }).collect(Collectors.toList());

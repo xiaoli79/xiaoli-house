@@ -29,7 +29,7 @@ feign:
       password: bite@123','2f99b238a0dc181c2cca4c1c7e5cf738',now(),now(),'nacos','172.19.0.1','通用Redis公共配置','frameworkjava-test','','','','yaml','',''),
                                                                                                                                                                              ('share-mysql-test.yaml','DEFAULT_GROUP','spring:
   datasource:
-    url: jdbc:mysql://你的云服务器内网ip/你的虚拟机内网ip:3306/frameworkjava_test?useSSL=false&autoReconnect=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&serverTimezone=GMT%2B8
+    url: jdbc:mysql://你的云服务器内网ip/你的虚拟机内网ip:3306/frameworkjava_test?useSSL=false&allowPublicKeyRetrieval=true&autoReconnect=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&serverTimezone=GMT%2B8
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: bitedev
     password: bite@123
