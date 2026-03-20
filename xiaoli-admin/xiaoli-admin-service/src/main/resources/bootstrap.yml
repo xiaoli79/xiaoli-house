@@ -5,6 +5,10 @@ spring:
     name: xiaoli-admin
   profiles:
     active: ${RUN_ENV}
+  datasource:
+    hikari:
+      data-source-properties:
+        allowPublicKeyRetrieval: true
   main:
     allow-bean-definition-overriding: true
   cloud:

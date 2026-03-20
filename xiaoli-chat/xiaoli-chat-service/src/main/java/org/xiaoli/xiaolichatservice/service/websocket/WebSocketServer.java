@@ -18,7 +18,6 @@ import org.xiaoli.xiaolicommonsecurity.utils.SecurityUtil;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 
-
 @ServerEndpoint(value = "/websocket",
         configurator = WebSockerConfig.class,
         encoders = {ServerEncoder.class})
@@ -44,6 +43,8 @@ public class WebSocketServer {
 
     private Long userId;
 
+
+    //这是用来查找用户信息
     private static TokenService tokenService;
 
     /**
@@ -60,7 +61,6 @@ public class WebSocketServer {
 
     @OnOpen
     public void onOpen(Session session) throws IOException {
-
 
         try{
             String token =(String) session.getUserProperties().get("Authorization");
@@ -90,9 +90,7 @@ public class WebSocketServer {
             log.error("连接出现异常，关闭连接",e);
             session.close();
         }
-
     }
-
 
     @OnClose
     public void onClose() {
@@ -103,7 +101,6 @@ public class WebSocketServer {
         this.session = null;
         this.userId = null;
     }
-
 
     @OnError
     public void onError(Throwable throwable) {

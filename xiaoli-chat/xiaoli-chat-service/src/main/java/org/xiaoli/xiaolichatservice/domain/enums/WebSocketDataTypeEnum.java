@@ -49,5 +49,4 @@ public enum  WebSocketDataTypeEnum {
     //4.valueof(String name)   根据枚举常量名来获取对应的枚举对象
     //WebSocketDataTypeEnum e = WebSocketDataTypeEnum.valueOf("TEXT");
     //System.out.println(e);   输出 TEXT对象
-
 }
