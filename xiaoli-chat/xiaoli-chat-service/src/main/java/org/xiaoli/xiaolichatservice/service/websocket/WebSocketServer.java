@@ -27,6 +27,9 @@ public class WebSocketServer {
 
 
 
+
+    
+
     //WebSocketServer不能直接通过@Autowired进行注入
     // 不能使用 @Autowired 或 @Resource
     // 因为 ws 是通过 WebSocketConfig.getEndpointInstance() 方法来获取每个连接对应的调用对象
@@ -46,6 +49,8 @@ public class WebSocketServer {
 
     //这是用来查找用户信息
     private static TokenService tokenService;
+
+
 
     /**
      * Autowired 注解作用与方法

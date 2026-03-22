@@ -3,15 +3,19 @@ package org.xiaoli.xiaolichatservice.service.impl;
 import cn.hutool.core.lang.func.Func;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.xiaoli.xiaoliadminapi.appUser.domain.dto.AppUserDTO;
 import org.xiaoli.xiaoliadminapi.appUser.domain.vo.AppUserVO;
 import org.xiaoli.xiaoliadminapi.appUser.feign.AppUserFeignClient;
 import org.xiaoli.xiaolichatservice.domain.dto.SessionAddReqDTO;
+import org.xiaoli.xiaolichatservice.domain.dto.SessionGetReqDTO;
 import org.xiaoli.xiaolichatservice.domain.dto.SessionStatusDetailDTO;
+import org.xiaoli.xiaolichatservice.domain.vo.MessageVO;
 import org.xiaoli.xiaolichatservice.domain.vo.SessionAddResVO;
 
+import org.xiaoli.xiaolichatservice.domain.vo.SessionGetResVO;
 import org.xiaoli.xiaolichatservice.entity.Session;
 import org.xiaoli.xiaolichatservice.mapper.SessionMapper;
 import org.xiaoli.xiaolichatservice.service.ChatCacheService;
@@ -130,6 +134,62 @@ public class SessionServiceImpl implements ISessionService {
                 sessionStatusDetailDTO.getFromUser(loginUserId).getUser().convertToVO());
         resVO.setOtherUser(
                 sessionStatusDetailDTO.getToUser(loginUserId).getUser().convertToVO());
+        return resVO;
+    }
+
+
+    /**
+     * 查询咨询会话
+     * @param sessionGetReqDTO
+     * @return
+     */
+    @Override
+    public SessionGetResVO get(SessionGetReqDTO sessionGetReqDTO) {
+
+
+        SessionGetResVO resVO = new SessionGetResVO();
+
+        Long userId1 = sessionGetReqDTO.getUserId1();
+        Long userId2 = sessionGetReqDTO.getUserId2();
+
+        boolean isSwapped = userId1 > userId2;
+        if(isSwapped){
+            Long temp = userId1;
+            userId1 = userId2;
+            userId2 = temp;
+        }
+
+        //校验会话是否存在
+        Session session = sessionMapper.selectOne(
+                new LambdaQueryWrapper<Session>()
+                        .eq(Session::getUserId1, userId1)
+                        .eq(Session::getUserId2, userId2));
+
+        //不存在，返回空
+        if(null == session){
+            return resVO;
+        }
+
+        //存在，查询缓存
+        SessionStatusDetailDTO sessionDTO = chatCacheService.getSessionDTOByCache(session.getId());
+        if(null == sessionDTO){
+            throw new ServiceException("聊天会话不一致");
+        }
+
+        resVO.setSessionId(session.getId());
+        if(null != sessionDTO.getLastMessageDTO()){
+            MessageVO messageVO = new MessageVO();
+            BeanUtils.copyProperties(sessionDTO.getLastMessageDTO(), messageVO);
+            resVO.setLastMessageVO(messageVO);
+        }
+        if(null != sessionDTO.getLastSessionTime()){
+            resVO.setLastSessionTime(sessionDTO.getLastSessionTime());
+        }
+
+        // 为浏览数：当前登录用户未浏览对方用户的消息数，存在自己的用户信息中
+        Long loginUserId = tokenService.getLoginUser().getUserId();
+        resVO.setNotVisitedCount(sessionDTO.getFromUser(loginUserId).getNotVisitedCount());
+        resVO.setOtherUser(sessionDTO.getToUser(loginUserId).getUser().convertToVO());
         return resVO;
     }
 }
