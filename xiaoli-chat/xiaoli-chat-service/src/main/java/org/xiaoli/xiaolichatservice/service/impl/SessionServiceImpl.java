@@ -1,6 +1,5 @@
 package org.xiaoli.xiaolichatservice.service.impl;
-
-import cn.hutool.core.lang.func.Func;
+;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -10,13 +9,9 @@ import org.springframework.stereotype.Service;
 import org.xiaoli.xiaoliadminapi.appUser.domain.dto.AppUserDTO;
 import org.xiaoli.xiaoliadminapi.appUser.domain.vo.AppUserVO;
 import org.xiaoli.xiaoliadminapi.appUser.feign.AppUserFeignClient;
-import org.xiaoli.xiaolichatservice.domain.dto.SessionAddReqDTO;
-import org.xiaoli.xiaolichatservice.domain.dto.SessionGetReqDTO;
-import org.xiaoli.xiaolichatservice.domain.dto.SessionListReqDTO;
-import org.xiaoli.xiaolichatservice.domain.dto.SessionStatusDetailDTO;
+import org.xiaoli.xiaolichatservice.domain.dto.*;
 import org.xiaoli.xiaolichatservice.domain.vo.MessageVO;
 import org.xiaoli.xiaolichatservice.domain.vo.SessionAddResVO;
-
 import org.xiaoli.xiaolichatservice.domain.vo.SessionGetResVO;
 import org.xiaoli.xiaolichatservice.entity.Session;
 import org.xiaoli.xiaolichatservice.mapper.SessionMapper;
@@ -27,7 +22,6 @@ import org.xiaoli.xiaolicommondomain.domain.R;
 import org.xiaoli.xiaolicommondomain.domain.ResultCode;
 import org.xiaoli.xiaolicommondomain.exception.ServiceException;
 import org.xiaoli.xiaolicommonsecurity.service.TokenService;
-
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -117,7 +111,6 @@ public class SessionServiceImpl implements ISessionService {
 
 
         SessionStatusDetailDTO sessionStatusDetailDTO = new  SessionStatusDetailDTO();
-
         sessionStatusDetailDTO.setSessionId(session.getId());
         SessionStatusDetailDTO.UserInfo userInfo1 = new SessionStatusDetailDTO.UserInfo();
         userInfo1.setUser(userMap.get(userId1));
@@ -212,7 +205,6 @@ public class SessionServiceImpl implements ISessionService {
             return Collections.emptyList();
         }
 
-
         return sessionIds.stream()
                 .map(sessionId ->chatCacheService.getSessionDTOByCache(sessionId))
                 .filter(sessionDTO -> sessionDTO != null && sessionDTO.getLastMessageDTO() != null)
@@ -227,5 +219,27 @@ public class SessionServiceImpl implements ISessionService {
                     sessionGetResVO.setOtherUser(sessionDTO.getToUser(loginUserId).getUser().convertToVO());
                     return sessionGetResVO;
                 }).collect(Collectors.toList());
+    }
+
+
+    /**
+     * 查询聊天记录下是否有房源
+     * @param sessionHouseReqDTO
+     * @return
+     */
+    @Override
+    public Boolean hasHouse(SessionHouseReqDTO sessionHouseReqDTO) {
+
+        //查会话详细信息（Redis）
+        SessionStatusDetailDTO sessionDTO = chatCacheService.getSessionDTOByCache(sessionHouseReqDTO.getSessionId());
+        if(null == sessionDTO){
+            throw new ServiceException("会话id有误，不存在其他会话消息");
+        }
+
+        Set<Long> houseIds = sessionDTO.getHouseIds();
+        if(CollectionUtils.isEmpty(houseIds)){
+            return false;
+        }
+        return houseIds.contains(sessionHouseReqDTO.getHouseId());
     }
 }

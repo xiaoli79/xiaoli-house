@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.xiaoli.xiaolichatservice.domain.dto.SessionAddReqDTO;
 import org.xiaoli.xiaolichatservice.domain.dto.SessionGetReqDTO;
+import org.xiaoli.xiaolichatservice.domain.dto.SessionHouseReqDTO;
 import org.xiaoli.xiaolichatservice.domain.dto.SessionListReqDTO;
 import org.xiaoli.xiaolichatservice.domain.vo.SessionAddResVO;
 import org.xiaoli.xiaolichatservice.domain.vo.SessionGetResVO;
@@ -55,6 +56,19 @@ public class SessionController {
     @PostMapping("/list")
     public R<List<SessionGetResVO>> list(@Validated @RequestBody SessionListReqDTO sessionListReqDTO){
         return R.ok(sessionService.list(sessionListReqDTO));
+    }
+
+
+    /**
+     * 查询聊天记录下是否有房源
+     * @param sessionHouseReqDTO
+     * @return
+     */
+    @PostMapping("/has_house")
+    public R<Boolean> hasHouse(@Validated @RequestBody SessionHouseReqDTO sessionHouseReqDTO){
+
+        return R.ok(sessionService.hasHouse(sessionHouseReqDTO));
+
     }
 
 
