@@ -3,6 +3,7 @@ package org.xiaoli.xiaolichatservice.service.impl;
 import cn.hutool.core.lang.func.Func;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -11,6 +12,7 @@ import org.xiaoli.xiaoliadminapi.appUser.domain.vo.AppUserVO;
 import org.xiaoli.xiaoliadminapi.appUser.feign.AppUserFeignClient;
 import org.xiaoli.xiaolichatservice.domain.dto.SessionAddReqDTO;
 import org.xiaoli.xiaolichatservice.domain.dto.SessionGetReqDTO;
+import org.xiaoli.xiaolichatservice.domain.dto.SessionListReqDTO;
 import org.xiaoli.xiaolichatservice.domain.dto.SessionStatusDetailDTO;
 import org.xiaoli.xiaolichatservice.domain.vo.MessageVO;
 import org.xiaoli.xiaolichatservice.domain.vo.SessionAddResVO;
@@ -26,9 +28,7 @@ import org.xiaoli.xiaolicommondomain.domain.ResultCode;
 import org.xiaoli.xiaolicommondomain.exception.ServiceException;
 import org.xiaoli.xiaolicommonsecurity.service.TokenService;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -191,5 +191,41 @@ public class SessionServiceImpl implements ISessionService {
         resVO.setNotVisitedCount(sessionDTO.getFromUser(loginUserId).getNotVisitedCount());
         resVO.setOtherUser(sessionDTO.getToUser(loginUserId).getUser().convertToVO());
         return resVO;
+    }
+
+
+
+    /**
+     * 获取会话列表
+     * @param sessionListReqDTO
+     * @return
+     */
+    @Override
+    public List<SessionGetResVO> list(SessionListReqDTO sessionListReqDTO) {
+
+        // 1. 查询当前登录用户下的已经聊过的会话id列表（按照会话的最后时间排序）
+        // 目标：必须聊过天才能查到
+        // 用户下的会话id列表什么时候存？ 不是在创建会话时存，而是在第一次发消息聊天才会存。
+        Long loginUserId = tokenService.getLoginUser().getUserId();
+        Set<Long> sessionIds = chatCacheService.getUserSessionByCache(loginUserId);
+        if(CollectionUtils.isEmpty(sessionIds)){
+            return Collections.emptyList();
+        }
+
+
+        return sessionIds.stream()
+                .map(sessionId ->chatCacheService.getSessionDTOByCache(sessionId))
+                .filter(sessionDTO -> sessionDTO != null && sessionDTO.getLastMessageDTO() != null)
+                .map(sessionDTO ->{
+                    SessionGetResVO sessionGetResVO = new SessionGetResVO();
+                    sessionGetResVO.setSessionId(sessionDTO.getSessionId());
+                    MessageVO messageVO = new MessageVO();
+                    BeanUtils.copyProperties(sessionDTO.getLastMessageDTO(), messageVO);
+                    sessionGetResVO.setLastMessageVO(messageVO);
+                    sessionGetResVO.setLastSessionTime(sessionDTO.getLastSessionTime());
+                    sessionGetResVO.setNotVisitedCount(sessionDTO.getFromUser(loginUserId).getNotVisitedCount());
+                    sessionGetResVO.setOtherUser(sessionDTO.getToUser(loginUserId).getUser().convertToVO());
+                    return sessionGetResVO;
+                }).collect(Collectors.toList());
     }
 }

@@ -2,8 +2,11 @@ package org.xiaoli.xiaolichatservice.service;
 
 import org.xiaoli.xiaolichatservice.domain.dto.SessionAddReqDTO;
 import org.xiaoli.xiaolichatservice.domain.dto.SessionGetReqDTO;
+import org.xiaoli.xiaolichatservice.domain.dto.SessionListReqDTO;
 import org.xiaoli.xiaolichatservice.domain.vo.SessionAddResVO;
 import org.xiaoli.xiaolichatservice.domain.vo.SessionGetResVO;
+
+import java.util.List;
 
 public interface ISessionService {
 
@@ -24,4 +27,12 @@ public interface ISessionService {
      * @return
      */
     SessionGetResVO get(SessionGetReqDTO sessionGetReqDTO);
+
+
+    /**
+     * 获取会话列表
+     * @param sessionListReqDTO
+     * @return
+     */
+    List<SessionGetResVO> list(SessionListReqDTO sessionListReqDTO);
 }

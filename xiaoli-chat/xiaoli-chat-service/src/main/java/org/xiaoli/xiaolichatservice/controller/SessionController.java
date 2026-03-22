@@ -9,10 +9,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.xiaoli.xiaolichatservice.domain.dto.SessionAddReqDTO;
 import org.xiaoli.xiaolichatservice.domain.dto.SessionGetReqDTO;
+import org.xiaoli.xiaolichatservice.domain.dto.SessionListReqDTO;
 import org.xiaoli.xiaolichatservice.domain.vo.SessionAddResVO;
 import org.xiaoli.xiaolichatservice.domain.vo.SessionGetResVO;
 import org.xiaoli.xiaolichatservice.service.ISessionService;
 import org.xiaoli.xiaolicommondomain.domain.R;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/session")
@@ -42,6 +45,22 @@ public class SessionController {
     public R<SessionGetResVO> get(@Validated @RequestBody SessionGetReqDTO sessionGetReqDTO){
         return R.ok(sessionService.get(sessionGetReqDTO));
     }
+
+
+    /**
+     * 获取会话列表
+     * @param sessionListReqDTO
+     * @return
+     */
+    @PostMapping("/list")
+    public R<List<SessionGetResVO>> list(@Validated @RequestBody SessionListReqDTO sessionListReqDTO){
+        return R.ok(sessionService.list(sessionListReqDTO));
+    }
+
+
+
+
+
 
 
 
