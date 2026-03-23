@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.xiaoli.xiaolichatservice.domain.dto.MessageListReqDTO;
+import org.xiaoli.xiaolichatservice.domain.dto.MessageReadReqDTO;
 import org.xiaoli.xiaolichatservice.domain.dto.MessageVisitedReqDTO;
 import org.xiaoli.xiaolichatservice.domain.vo.MessageVO;
 import org.xiaoli.xiaolichatservice.service.IMessageService;
@@ -46,6 +47,19 @@ public class MeesageController {
     @PostMapping("/batch_visited")
     public R<?> batchVisited(@Validated @RequestBody MessageVisitedReqDTO messageVisitedReqDTO) {
         messageService.batchVisited(messageVisitedReqDTO);
+        return R.ok();
+    }
+
+
+    /**
+     * 更新消息已读状态（目前只有语音）
+     *
+     * @param messageReadReqDTO
+     * @return
+     */
+    @PostMapping("/batch_read")
+    public R<?> batchRead(@Validated @RequestBody MessageReadReqDTO messageReadReqDTO) {
+        messageService.batchRead(messageReadReqDTO);
         return R.ok();
     }
 

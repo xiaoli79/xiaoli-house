@@ -1,6 +1,7 @@
 package org.xiaoli.xiaolichatservice.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -23,6 +24,7 @@ import org.xiaoli.xiaolicommoncore.utils.BeanCopyUtil;
 import org.xiaoli.xiaolicommonsecurity.service.TokenService;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -234,6 +236,55 @@ public class MessageServiceImpl implements IMessageService {
         //获取的是最新的消息
         sessionDTO.setLastMessageDTO(messageDTOS.iterator().next());
         chatCacheService.cahceSessionDTO(reqDTO.getSessionId(),sessionDTO);
+
+    }
+
+
+    /**
+     * 更新消息已读状态（目前只有语音）
+     *
+     * @param reqDTO
+     * @return
+     */
+    @Override
+    public void batchRead(MessageReadReqDTO reqDTO) {
+
+        List<Long> messageIds = reqDTO.getMessageIds().stream()
+                .map(Long::valueOf)
+                .collect(Collectors.toList());
+
+
+        messageMapper.update(null, new LambdaUpdateWrapper<Message>()
+                .in(Message::getId, messageIds)
+                .set(Message::getStatus, MessageStatusEnum.MESSAGE_READ.getCode()));
+
+
+        Set<MessageDTO> messageDTOS = chatCacheService.getMessageDTOSByCache(reqDTO.getSessionId());
+        if(CollectionUtils.isEmpty(messageDTOS)){
+            return;
+        }
+
+        int count = reqDTO.getMessageIds().size();
+
+        for(MessageDTO messageDTO : messageDTOS){
+            if(reqDTO.getMessageIds().contains(messageDTO.getMessageId())){
+                messageDTO.setStatus(MessageStatusEnum.MESSAGE_READ.getCode());
+                chatCacheService.removeMessageDTOCache(messageDTO.getSessionId(), messageDTO.getMessageId());
+                chatCacheService.addMessageToCache(messageDTO.getSessionId(), messageDTO);
+                count--;
+            }
+
+            if (count <= 0) {
+                break;
+            }
+        }
+
+        // 修改会话详情缓存:
+        // 1. 登录用户记录的对方消息未浏览数
+        // 2. 最后一条聊天消息（访问状态）
+        SessionStatusDetailDTO sessionDTO = chatCacheService.getSessionDTOByCache(reqDTO.getSessionId());
+        sessionDTO.setLastMessageDTO(messageDTOS.iterator().next());
+        chatCacheService.cahceSessionDTO(sessionDTO.getSessionId(), sessionDTO);
 
     }
 }

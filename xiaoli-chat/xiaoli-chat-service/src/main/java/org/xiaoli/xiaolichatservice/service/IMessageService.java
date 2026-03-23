@@ -1,9 +1,6 @@
 package org.xiaoli.xiaolichatservice.service;
 
-import org.xiaoli.xiaolichatservice.domain.dto.MessageDTO;
-import org.xiaoli.xiaolichatservice.domain.dto.MessageListReqDTO;
-import org.xiaoli.xiaolichatservice.domain.dto.MessageSendReqDTO;
-import org.xiaoli.xiaolichatservice.domain.dto.MessageVisitedReqDTO;
+import org.xiaoli.xiaolichatservice.domain.dto.*;
 import org.xiaoli.xiaolichatservice.domain.vo.MessageVO;
 
 import java.util.List;
@@ -44,6 +41,11 @@ public interface IMessageService {
      */
     void batchVisited(MessageVisitedReqDTO reqDTO);
 
-
-
+    /**
+     * 更新消息已读状态（目前只有语音）
+     *
+     * @param reqDTO
+     * @return
+     */
+    void batchRead(MessageReadReqDTO reqDTO);
 }
