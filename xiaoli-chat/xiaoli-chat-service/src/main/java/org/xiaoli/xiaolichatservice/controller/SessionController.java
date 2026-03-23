@@ -59,6 +59,7 @@ public class SessionController {
     }
 
 
+
     /**
      * 查询聊天记录下是否有房源
      * @param sessionHouseReqDTO

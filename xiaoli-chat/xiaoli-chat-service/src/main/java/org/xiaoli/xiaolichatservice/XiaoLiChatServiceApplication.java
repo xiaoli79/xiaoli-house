@@ -11,7 +11,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 @Slf4j
 @MapperScan("org.xiaoli.**.mapper")
 @EnableFeignClients(basePackages = {"org.xiaoli.**.feign"})
-@SpringBootApplication(exclude = {RabbitAutoConfiguration.class})
+@SpringBootApplication
 public class XiaoLiChatServiceApplication {
 
     public static void main(String[] args) {
