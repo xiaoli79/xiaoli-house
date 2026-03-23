@@ -1,17 +1,18 @@
 package org.xiaoli.xiaolichatservice.service.impl;
-
-import cn.hutool.core.lang.func.Func;
+;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.xiaoli.xiaoliadminapi.appUser.domain.dto.AppUserDTO;
 import org.xiaoli.xiaoliadminapi.appUser.domain.vo.AppUserVO;
 import org.xiaoli.xiaoliadminapi.appUser.feign.AppUserFeignClient;
-import org.xiaoli.xiaolichatservice.domain.dto.SessionAddReqDTO;
-import org.xiaoli.xiaolichatservice.domain.dto.SessionStatusDetailDTO;
+import org.xiaoli.xiaolichatservice.domain.dto.*;
+import org.xiaoli.xiaolichatservice.domain.vo.MessageVO;
 import org.xiaoli.xiaolichatservice.domain.vo.SessionAddResVO;
-
+import org.xiaoli.xiaolichatservice.domain.vo.SessionGetResVO;
 import org.xiaoli.xiaolichatservice.entity.Session;
 import org.xiaoli.xiaolichatservice.mapper.SessionMapper;
 import org.xiaoli.xiaolichatservice.service.ChatCacheService;
@@ -21,10 +22,7 @@ import org.xiaoli.xiaolicommondomain.domain.R;
 import org.xiaoli.xiaolicommondomain.domain.ResultCode;
 import org.xiaoli.xiaolicommondomain.exception.ServiceException;
 import org.xiaoli.xiaolicommonsecurity.service.TokenService;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -113,7 +111,6 @@ public class SessionServiceImpl implements ISessionService {
 
 
         SessionStatusDetailDTO sessionStatusDetailDTO = new  SessionStatusDetailDTO();
-
         sessionStatusDetailDTO.setSessionId(session.getId());
         SessionStatusDetailDTO.UserInfo userInfo1 = new SessionStatusDetailDTO.UserInfo();
         userInfo1.setUser(userMap.get(userId1));
@@ -131,5 +128,118 @@ public class SessionServiceImpl implements ISessionService {
         resVO.setOtherUser(
                 sessionStatusDetailDTO.getToUser(loginUserId).getUser().convertToVO());
         return resVO;
+    }
+
+
+    /**
+     * 查询咨询会话
+     * @param sessionGetReqDTO
+     * @return
+     */
+    @Override
+    public SessionGetResVO get(SessionGetReqDTO sessionGetReqDTO) {
+
+
+        SessionGetResVO resVO = new SessionGetResVO();
+
+        Long userId1 = sessionGetReqDTO.getUserId1();
+        Long userId2 = sessionGetReqDTO.getUserId2();
+
+        boolean isSwapped = userId1 > userId2;
+        if(isSwapped){
+            Long temp = userId1;
+            userId1 = userId2;
+            userId2 = temp;
+        }
+
+        //校验会话是否存在
+        Session session = sessionMapper.selectOne(
+                new LambdaQueryWrapper<Session>()
+                        .eq(Session::getUserId1, userId1)
+                        .eq(Session::getUserId2, userId2));
+
+        //不存在，返回空
+        if(null == session){
+            return resVO;
+        }
+
+        //存在，查询缓存
+        SessionStatusDetailDTO sessionDTO = chatCacheService.getSessionDTOByCache(session.getId());
+        if(null == sessionDTO){
+            throw new ServiceException("聊天会话不一致");
+        }
+
+        resVO.setSessionId(session.getId());
+        if(null != sessionDTO.getLastMessageDTO()){
+            MessageVO messageVO = new MessageVO();
+            BeanUtils.copyProperties(sessionDTO.getLastMessageDTO(), messageVO);
+            resVO.setLastMessageVO(messageVO);
+        }
+        if(null != sessionDTO.getLastSessionTime()){
+            resVO.setLastSessionTime(sessionDTO.getLastSessionTime());
+        }
+
+        // 为浏览数：当前登录用户未浏览对方用户的消息数，存在自己的用户信息中
+        Long loginUserId = tokenService.getLoginUser().getUserId();
+        resVO.setNotVisitedCount(sessionDTO.getFromUser(loginUserId).getNotVisitedCount());
+        resVO.setOtherUser(sessionDTO.getToUser(loginUserId).getUser().convertToVO());
+        return resVO;
+    }
+
+
+
+    /**
+     * 获取会话列表
+     * @param sessionListReqDTO
+     * @return
+     */
+    @Override
+    public List<SessionGetResVO> list(SessionListReqDTO sessionListReqDTO) {
+
+        // 1. 查询当前登录用户下的已经聊过的会话id列表（按照会话的最后时间排序）
+        // 目标：必须聊过天才能查到
+        // 用户下的会话id列表什么时候存？ 不是在创建会话时存，而是在第一次发消息聊天才会存。
+        Long loginUserId = tokenService.getLoginUser().getUserId();
+        Set<Long> sessionIds = chatCacheService.getUserSessionByCache(loginUserId);
+        if(CollectionUtils.isEmpty(sessionIds)){
+            return Collections.emptyList();
+        }
+
+        return sessionIds.stream()
+                .map(sessionId ->chatCacheService.getSessionDTOByCache(sessionId))
+                .filter(sessionDTO -> sessionDTO != null && sessionDTO.getLastMessageDTO() != null)
+                .map(sessionDTO ->{
+                    SessionGetResVO sessionGetResVO = new SessionGetResVO();
+                    sessionGetResVO.setSessionId(sessionDTO.getSessionId());
+                    MessageVO messageVO = new MessageVO();
+                    BeanUtils.copyProperties(sessionDTO.getLastMessageDTO(), messageVO);
+                    sessionGetResVO.setLastMessageVO(messageVO);
+                    sessionGetResVO.setLastSessionTime(sessionDTO.getLastSessionTime());
+                    sessionGetResVO.setNotVisitedCount(sessionDTO.getFromUser(loginUserId).getNotVisitedCount());
+                    sessionGetResVO.setOtherUser(sessionDTO.getToUser(loginUserId).getUser().convertToVO());
+                    return sessionGetResVO;
+                }).collect(Collectors.toList());
+    }
+
+
+    /**
+     * 查询聊天记录下是否有房源
+     * @param sessionHouseReqDTO
+     * @return
+     */
+    @Override
+    public Boolean hasHouse(SessionHouseReqDTO sessionHouseReqDTO) {
+
+        //查会话详细信息（Redis）
+        SessionStatusDetailDTO sessionDTO = chatCacheService.getSessionDTOByCache(sessionHouseReqDTO.getSessionId());
+        if(null == sessionDTO){
+            throw new ServiceException("会话id有误，不存在其他会话消息");
+        }
+
+        Set<Long> houseIds = sessionDTO.getHouseIds();
+        if(CollectionUtils.isEmpty(houseIds)){
+            return false;
+        }
+        return houseIds.contains(sessionHouseReqDTO.getHouseId());
     }
 }

@@ -7,8 +7,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.xiaoli.xiaolichatservice.config.ServerEncoder;
 import org.xiaoli.xiaolichatservice.config.WebSockerConfig;
+import org.xiaoli.xiaolichatservice.domain.dto.MessageSendReqDTO;
 import org.xiaoli.xiaolichatservice.domain.dto.WebSocketDTO;
+import org.xiaoli.xiaolichatservice.domain.enums.MessageStatusEnum;
 import org.xiaoli.xiaolichatservice.domain.enums.WebSocketDataTypeEnum;
+import org.xiaoli.xiaolichatservice.service.SnowflakeIdService;
+import org.xiaoli.xiaolichatservice.service.mq.MessageProduce;
 import org.xiaoli.xiaolicommoncore.utils.JsonUtil;
 import org.xiaoli.xiaolicommondomain.domain.ResultCode;
 import org.xiaoli.xiaolicommondomain.exception.ServiceException;
@@ -24,7 +28,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 @Slf4j
 public class WebSocketServer {
-
 
 
     //WebSocketServer不能直接通过@Autowired进行注入
@@ -47,6 +50,15 @@ public class WebSocketServer {
     //这是用来查找用户信息
     private static TokenService tokenService;
 
+
+
+    private static MessageProduce messageProduce;
+
+
+    private static SnowflakeIdService snowflakeIdService;
+
+
+
     /**
      * Autowired 注解作用与方法
      * 当类实例化时，Spring容器会自动解析方法的参数。并为参数找到与其匹配的Bean实例，然后调用这个方法并注入
@@ -56,6 +68,18 @@ public class WebSocketServer {
     @Autowired
     public TokenService setTokenService(TokenService tokenService) {
         return WebSocketServer.tokenService = tokenService;
+    }
+
+
+    @Autowired
+    public MessageProduce setMessageProduce(MessageProduce messageProduce) {
+        return WebSocketServer.messageProduce = messageProduce;
+    }
+
+
+    @Autowired
+    public void setSnowflakeIdService(SnowflakeIdService snowflakeIdService) {
+        WebSocketServer.snowflakeIdService = snowflakeIdService;
     }
 
 
@@ -154,7 +178,7 @@ public class WebSocketServer {
                 break;
             case CHAT:
                 //处理聊天消息
-                handleChatMessage();
+                handleChatMessage((String)data);
                 break;
             default:
                 //处理未知消息
@@ -164,10 +188,36 @@ public class WebSocketServer {
     }
 
 
-    private void handleChatMessage() {
+    /**
+     * 处理聊天消息
+     * @param data
+     */
+    private void handleChatMessage(String data) {
+
+
+        try{
+            //反序列化咨询聊天消息
+            MessageSendReqDTO messageSendReqDTO = JsonUtil.string2Obj(data, MessageSendReqDTO.class);
+            if(null == messageSendReqDTO){
+                throw new ServiceException("聊天消息为空");
+            }
+
+            //广播咨询聊天消息
+            messageSendReqDTO.setMessageId(snowflakeIdService.nextId());
+            messageSendReqDTO.setStatus(MessageStatusEnum.MESSAGE_UNREAD.getCode());
+            messageSendReqDTO.setVisited(MessageStatusEnum.MESSAGE_NOT_VISITED.getCode());
+            messageProduce.sendMessage(messageSendReqDTO);
+
+        }catch (Exception e){
+            log.error("生产者发送消息异常,data:{}",data,e);
+        }
     }
 
     private void handleHeartBeatMessage() {
+        //对应心跳消息，接收到谁的Ping，就给谁Pong
+        WebSocketDTO<String> webSocketDTO = new WebSocketDTO<>(
+                WebSocketDataTypeEnum.HEART_BEAT.getType(), "pong");
+        sendMessage(webSocketDTO);
     }
 
     private  void handleUnknowMessage(String type) {
@@ -197,5 +247,23 @@ public class WebSocketServer {
         } catch (Exception e) {
             log.error("ws消息推送失败，webSocketDTO:{}",JsonUtil.obj2String(webSocketDTO),e);
         }
+    }
+
+    /**
+     * 给指定用户推送消息（这里的用户是当前服务器自己管理的session）
+     *
+     * @param userId
+     * @param webSocketDTO
+     */
+    public static void sendMessage(Long userId,WebSocketDTO<?> webSocketDTO) {
+
+        if(!webSocketMap.containsKey(userId)){
+            //无法推送，丢弃
+            return;
+        }
+
+        webSocketMap.get(userId).sendMessage(webSocketDTO);
+        log.info("消息转发成功：{}",JsonUtil.obj2String(webSocketDTO));
+
     }
 }

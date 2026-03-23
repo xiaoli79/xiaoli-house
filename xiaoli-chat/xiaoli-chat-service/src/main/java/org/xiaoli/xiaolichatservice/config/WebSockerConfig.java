@@ -16,12 +16,6 @@ import java.util.Map;
 public class WebSockerConfig extends ServerEndpointConfig.Configurator {
 
 
-
-
-
-
-
-
     /**
      * 这个类注册每个家了@ServerEndpoint的spring bean 节点，算是spring整合websocket的体现
      * 没有的话会报404
@@ -52,10 +46,6 @@ public class WebSockerConfig extends ServerEndpointConfig.Configurator {
             throw new RuntimeException("请求头不符合要求，缺少Authorization信息");
         }
         final Map<String,Object> userProperties = sec.getUserProperties();
-        userProperties.remove("Authorization",authorization.get(0));
+        userProperties.put("Authorization",authorization.get(0));
     }
-
-
-
-
 }
