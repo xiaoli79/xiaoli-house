@@ -3,6 +3,7 @@ package org.xiaoli.xiaolichatservice.service;
 import org.xiaoli.xiaolichatservice.domain.dto.MessageDTO;
 import org.xiaoli.xiaolichatservice.domain.dto.MessageListReqDTO;
 import org.xiaoli.xiaolichatservice.domain.dto.MessageSendReqDTO;
+import org.xiaoli.xiaolichatservice.domain.dto.MessageVisitedReqDTO;
 import org.xiaoli.xiaolichatservice.domain.vo.MessageVO;
 
 import java.util.List;
@@ -32,4 +33,17 @@ public interface IMessageService {
      * @return
      */
     List<MessageVO> list(MessageListReqDTO messageListReqDTO);
+
+
+
+    /**
+     * 更新消息访问状态
+     *
+     * @param reqDTO
+     * @return
+     */
+    void batchVisited(MessageVisitedReqDTO reqDTO);
+
+
+
 }

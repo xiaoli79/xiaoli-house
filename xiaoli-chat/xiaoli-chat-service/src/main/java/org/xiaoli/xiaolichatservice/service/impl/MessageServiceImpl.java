@@ -1,16 +1,14 @@
 package org.xiaoli.xiaolichatservice.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.xiaoli.xiaolichatservice.domain.dto.MessageDTO;
-import org.xiaoli.xiaolichatservice.domain.dto.MessageListReqDTO;
-import org.xiaoli.xiaolichatservice.domain.dto.MessageSendReqDTO;
-import org.xiaoli.xiaolichatservice.domain.dto.SessionStatusDetailDTO;
+import org.xiaoli.xiaolichatservice.domain.dto.*;
 import org.xiaoli.xiaolichatservice.domain.enums.MessageStatusEnum;
 import org.xiaoli.xiaolichatservice.domain.enums.MessageTypeEnum;
 import org.xiaoli.xiaolichatservice.domain.vo.MessageVO;
@@ -173,5 +171,69 @@ public class MessageServiceImpl implements IMessageService {
         Collections.reverse(resultList);
 
         return resultList;
+    }
+
+
+    /**
+     * 更新消息访问状态
+     *
+     * @param reqDTO
+     * @return
+     */
+    @Override
+    public void batchVisited(MessageVisitedReqDTO reqDTO) {
+
+        //查询对方用户id
+        Long loginUserId = tokenService.getLoginUser().getUserId();
+        Session session = sessionMapper.selectById(reqDTO.getSessionId());
+        Long otherUserID = loginUserId.equals(session.getUserId1()) ? session.getUserId2() : session.getUserId1();
+
+        //修改对方用户消息的访问状态（mysql）
+        messageMapper.update(null,
+                new LambdaUpdateWrapper<Message>()
+                        .eq(Message::getSessionId,reqDTO.getSessionId())
+                        .eq(Message::getFromId,otherUserID)
+                        .eq(Message::getVisited,MessageStatusEnum.MESSAGE_NOT_VISITED.getCode())
+                        .set(Message::getVisited,MessageStatusEnum.MESSAGE_VISITED.getCode()));
+
+
+        //修饰对方用户信息的访问状态(redis)
+
+
+        //会话-消息列表
+        Set<MessageDTO> messageDTOS = chatCacheService.getMessageDTOSByCache(reqDTO.getSessionId());
+        if(CollectionUtils.isEmpty(messageDTOS)){
+            return;
+        }
+        for(MessageDTO messageDTO : messageDTOS){
+
+            //自己的消息处理
+            if(messageDTO.getFromId().equals(loginUserId)){
+                continue;
+            }
+            //当遍历到的消息为已浏览，说明之前的消息也已经浏览了
+            if(MessageTypeEnum.MESSAGE_CARD.getCode().equals(messageDTO.getVisited())){
+                break;
+            }
+
+
+            //需要更新浏览状态，先删除再新增
+            messageDTO.setVisited(MessageStatusEnum.MESSAGE_VISITED.getCode());
+            chatCacheService.removeMessageDTOCache(messageDTO.getSessionId(),messageDTO.getMessageId());
+            chatCacheService.addMessageToCache(messageDTO.getSessionId(),messageDTO);
+
+        }
+
+
+        //修改会话详情缓存
+        //1.登录用户记录的是对方消息未浏览数
+        //2.最后一条聊天消息(访问状态)
+        SessionStatusDetailDTO sessionDTO = chatCacheService.getSessionDTOByCache(reqDTO.getSessionId());
+        SessionStatusDetailDTO.UserInfo userInfo = sessionDTO.getFromUser(loginUserId);
+        userInfo.setNotVisitedCount(0);
+        //获取的是最新的消息
+        sessionDTO.setLastMessageDTO(messageDTOS.iterator().next());
+        chatCacheService.cahceSessionDTO(reqDTO.getSessionId(),sessionDTO);
+
     }
 }
