@@ -158,6 +158,70 @@ public class WebSocketServer {
     }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     /**
      * 处理ws消息
      * @param type
@@ -190,7 +254,7 @@ public class WebSocketServer {
 
     /**
      * 处理聊天消息
-     * @param data
+     *@param data
      */
     private void handleChatMessage(String data) {
 
