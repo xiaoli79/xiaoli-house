@@ -1,7 +1,11 @@
 package org.xiaoli.xiaolichatservice.service;
 
 import org.xiaoli.xiaolichatservice.domain.dto.MessageDTO;
+import org.xiaoli.xiaolichatservice.domain.dto.MessageListReqDTO;
 import org.xiaoli.xiaolichatservice.domain.dto.MessageSendReqDTO;
+import org.xiaoli.xiaolichatservice.domain.vo.MessageVO;
+
+import java.util.List;
 
 public interface IMessageService {
 
@@ -19,4 +23,13 @@ public interface IMessageService {
      * @return
      */
     boolean add(MessageSendReqDTO messageSendReqDTO);
+
+
+
+    /**
+     * 查询聊天信息列表
+     * @param messageListReqDTO
+     * @return
+     */
+    List<MessageVO> list(MessageListReqDTO messageListReqDTO);
 }

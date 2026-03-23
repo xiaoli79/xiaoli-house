@@ -2,14 +2,18 @@ package org.xiaoli.xiaolichatservice.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.xiaoli.xiaolichatservice.domain.dto.MessageDTO;
+import org.xiaoli.xiaolichatservice.domain.dto.MessageListReqDTO;
 import org.xiaoli.xiaolichatservice.domain.dto.MessageSendReqDTO;
 import org.xiaoli.xiaolichatservice.domain.dto.SessionStatusDetailDTO;
 import org.xiaoli.xiaolichatservice.domain.enums.MessageStatusEnum;
 import org.xiaoli.xiaolichatservice.domain.enums.MessageTypeEnum;
+import org.xiaoli.xiaolichatservice.domain.vo.MessageVO;
 import org.xiaoli.xiaolichatservice.entity.Message;
 import org.xiaoli.xiaolichatservice.entity.Session;
 import org.xiaoli.xiaolichatservice.mapper.MessageMapper;
@@ -20,7 +24,7 @@ import org.xiaoli.xiaolichatservice.service.SnowflakeIdService;
 import org.xiaoli.xiaolicommoncore.utils.BeanCopyUtil;
 import org.xiaoli.xiaolicommonsecurity.service.TokenService;
 
-import java.util.Set;
+import java.util.*;
 
 
 @Service
@@ -122,5 +126,52 @@ public class MessageServiceImpl implements IMessageService {
         chatCacheService.addUserSessionToCache(
                 session.getUserId2(), session.getId(), sessionDTO.getLastSessionTime());
         return true;
+    }
+
+
+    /**
+     * 查询聊天信息列表
+     * @param messageListReqDTO
+     * @return
+     */
+    @Override
+    public List<MessageVO> list(MessageListReqDTO messageListReqDTO) {
+
+        //从缓存那种获取会话id下的消息全集合（倒序）
+        Set<MessageDTO> messageDTOSet = chatCacheService.getMessageDTOSByCache(messageListReqDTO.getSessionId());
+        if(CollectionUtils.isEmpty(messageDTOSet)){
+            return Arrays.asList();
+        }
+
+
+        //遍历链表，构造需要返回的结果
+        List<MessageVO> resultList = new ArrayList<>();
+        int curCount = messageListReqDTO.getCount();
+
+        for(MessageDTO messageDTO : messageDTOSet){
+            //遍历到传入的最后一条消息，需要判断下是否需要获取这个消息
+            if(messageDTO.getMessageId().equalsIgnoreCase(messageListReqDTO.getLastMessageId())
+                    && messageListReqDTO.getNeedCurMessage()){
+                MessageVO messageVO = new MessageVO();
+                BeanCopyUtil.copyProperties(messageDTO,messageVO);
+                resultList.add(messageVO);
+                curCount--;
+            }else if(0 > messageDTO.getMessageId().compareTo(messageListReqDTO.getLastMessageId())){
+                MessageVO messageVO = new MessageVO();
+                BeanCopyUtil.copyProperties(messageDTO,messageVO);
+                resultList.add(messageVO);
+                curCount--;
+            }
+            if(curCount <= 0){
+                break;
+            }
+        }
+
+        // 由于缓存中的消息是倒序的，最新的消息在最前面
+        // 那么遍历的时候，往resultList add时也是最新消息在最前面
+        // 需要逆置
+        Collections.reverse(resultList);
+
+        return resultList;
     }
 }
